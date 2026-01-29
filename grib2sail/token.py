@@ -7,6 +7,7 @@ from grib2sail import variables as v
 from grib2sail.logger import logger
 
 def get_arome_token():
+  logger.info('Authenticating to MeteoFrance')
   appId = get_arome_appid()
   try:
     response = requests.post(

@@ -15,7 +15,6 @@ def download_gribs(m, s, d, lat, lon):
 
 def download_arome(model, step, data, lat, lon):
   token = get_arome_token()
-  logger.debug('Token for AROME API retrieived')
   
   # Coverages list all the individual layers categories to download
   coverages = []
@@ -29,6 +28,7 @@ def download_arome(model, step, data, lat, lon):
     coverages += [v.AROM_DATAS['cloud']]
   
   # Get latest available forecast date from arome /GetCapabilities api endpoint
+  logger.info('Finding latest available forecast')
   try:
     capa = requests.get(
       v.AROM_URLS[f"{model}_capa"], 
@@ -94,9 +94,19 @@ def download_arome(model, step, data, lat, lon):
           r.raise_for_status()
           outfile.write(r.content)
         except requests.exceptions.HTTPError:
-          logger.warning(
-            f"Failed to download {url} status code is {r.status_code}"
+          layer = next(
+            (k for k, v in v.AROM_DATAS.items() if v == coverage),
+            None
+          )
+          logger.warning(f"Missing layer: {layer} at time: {int(time / 3600)}h")
+          logger.debug(
+            f"Url used was {url} and status code was {r.status_code}"
           )
         except Exception as e:
           logger.error_exit(f"Download failed: {e}", to_clean=[file])
+        layer = next(
+          (k for k, v in v.AROM_DATAS.items() if v == coverage), 
+          None
+        )
+        logger.warning(f"Missing layer: {layer} at time: {int(time / 3600)}h")
         progress.update(task, advance=1)
