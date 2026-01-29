@@ -1,16 +1,17 @@
 import os
 import keyring
 import getpass
-import requests
 
-from grib2sail import variables as v 
+from grib2sail import variables as v
+import grib2sail.downloader as d
 from grib2sail.logger import logger
 
 def get_arome_token():
   logger.info('Authenticating to MeteoFrance')
   appId = get_arome_appid()
+  session = d.get_session()
   try:
-    response = requests.post(
+    response = session.post(
       v.AROM_URLS['token'], 
       data = { 'grant_type': 'client_credentials' }, 
       headers = { 'Authorization': f"Basic {appId}" },
