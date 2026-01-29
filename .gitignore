@@ -1,5 +1,5 @@
 .dev/
 __pycache__/
 dist/
-grib4sail.egg-info/
+grib2sail.egg-info/
 _version.py
