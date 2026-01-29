@@ -1,7 +1,7 @@
 # GRIB2Sail
 
 ![PyPI version](https://img.shields.io/pypi/v/grib2sail.svg)
-![CI](https://img.shields.io/github/workflow/status/Ch1nkara/GRIB2Sail/CI)
+![CI](https://img.shields.io/github/actions/workflow/status/Ch1nkara/GRIB2Sail/release.yml)
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 
 Grib files downloader for sailing purposes.
@@ -21,7 +21,7 @@ To download GRIB from meteofrance's models (Aome), you must create a free
 account on meteofrance.fr. The procedure is as follow:
  1. Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr)
  2. Subscribe to the desired service (Arome)
- 3. Go to "My API" then, from your subscribe model: "Generate Token"
+ 3. Go to "My API" then, from your subscribed model: "Generate Token"
  4. Checkout the curl field at the bottom, it looks like :
    ```bash
    curl -k -X POST https://portal-api.meteofrance.fr/token -d "grant_type=client_credentials" -H "Authorization: Basic ABCDEF1234abcdef"
