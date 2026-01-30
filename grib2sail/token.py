@@ -2,8 +2,8 @@ import os
 import keyring
 import getpass
 
-from grib2sail import variables as v
 import grib2sail.downloader as d
+from grib2sail import variables_arom as va
 from grib2sail.logger import logger
 
 def get_arome_token():
@@ -12,7 +12,7 @@ def get_arome_token():
   session = d.get_session()
   try:
     response = session.post(
-      v.AROM_URLS['token'], 
+      va.AROM_URLS['token'], 
       data = { 'grant_type': 'client_credentials' }, 
       headers = { 'Authorization': f"Basic {appId}" },
       timeout = 60,
