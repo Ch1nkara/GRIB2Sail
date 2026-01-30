@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import requests
+import time as t
 
 import grib2sail.variables as v
 import grib2sail.variables_arom as va
@@ -76,14 +77,32 @@ def download_arom(model, step, data, lat, lon):
         subHeight = ''
       paramSubset = subTime + subLat + subLon + subHeight
       urls.append(va.AROM_URLS[f"{model}_cov"]+ paramCovId + paramSubset)
-  layers = d.get_layers(model, urls, header)
+
+  # Downloading the layers
+  layers = []
+  if len(urls) < 100:
+    layers = d.get_layers(model, urls, header)
+  else:
+    msg = f"The requested grib has {len(urls)} layers, but MeteoFrance"
+    msg += ' servers limit requests to 100 per minute. This program will'
+    msg += ' sleep 1 minute every 100 layer util the complete grib file'
+    msg += ' is downloaded. You might want to consider reducing the number'
+    msg += ' of layers by increasing the step or reducing the number of'
+    msg += ' data'
+    logger.warning(msg)
+    for i in range(0, len(urls), 100):
+      layers.extend(d.get_layers(model, urls[i:i+100], header))
+      if i+100 < len(urls):
+        logger.info('Sleeping 1 minute...')
+        t.sleep(60)
   
   # Output the file once all the layers have been downloaded
   file = Path(f"{model}_{latestRun}_{step}.grib2")
   file.unlink(missing_ok=True)
   with open(file, "wb") as outfile:
     for layer in layers:
-      outfile.write(layer)
+      if layer:
+        outfile.write(layer)
 
 def handle_fetch_error_arom(e):
   if isinstance(e, requests.exceptions.HTTPError):
