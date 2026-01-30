@@ -1,10 +1,16 @@
 # GRIB2Sail
 
-![PyPI version](https://img.shields.io/pypi/v/grib2sail.svg)
-![CI](https://img.shields.io/github/actions/workflow/status/Ch1nkara/GRIB2Sail/release.yml)
-![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
-
-Grib files downloader for sailing purposes.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Ch1nkara/GRIB2Sail/main/docs/assets/grib2sail_logo.png" alt="GRIB2Sail" width="40%">
+</p>
+<p align="center">
+  <em>Grib files downloader for sailing purposes</em>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/pypi/v/grib2sail.svg">
+  <img src="https://img.shields.io/github/actions/workflow/status/Ch1nkara/GRIB2Sail/release.yml">
+  <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg">
+</p>
 
 Currently the supported models are:
  - AROME
@@ -33,7 +39,7 @@ account on meteofrance.fr. The procedure is as follow:
 
 ## Usage
 
-To get the GRIB file contianing the wind, the wind_gust, the atmospheric 
+To get the GRIB file containing the wind, the wind_gust, the atmospheric 
 pressure and the cloud coverage for the area between latitude 11.5N - 12.5N 
 and longitude 62.5W - 61.5W with a 3 hour step from the AROME ANTILLE model 
 run:
