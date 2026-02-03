@@ -12,6 +12,7 @@ app = typer.Typer(help='Download GRIB2 meteorological data')
 def main(
   model: str = typer.Option(v.MODELS[0], help='Choose one among: ' + ', '.join(v.MODELS)),
   step: str = typer.Option(v.STEPS[1], help='Choose one among: '  + ', '.join(v.STEPS)),
+  days: str = typer.Option(2, help='Forecast duration in days'),
   data: str = typer.Option(v.DATAS[0], help='Choose multiple among: ' + ', '.join(v.DATAS)),
   lat: str = typer.Option(..., help='latitudes max and min ex: -7,-2'),
   lon: str = typer.Option(..., help='longitude max and min ex: -62,-60'),
@@ -24,11 +25,10 @@ def main(
   logger.debug(f"latitude is now: {lat}")
   lon = parse_coord(lon)
   logger.debug(f"longitude is now: {lon}")
-  validate_input(model, step, data, lat, lon)
-  
-  logger.debug(f"model: {model}, step: {step}, data: {data}")
+  validate_input(model, step, days, data, lat, lon)
+  logger.debug(f"model: {model}, step: {step}, days: {days}, data: {data}")
   logger.info(f"Downloading from {model}: {data}")
-  download_gribs(model, step, data, lat, lon)
+  download_gribs(model, step, days, data, lat, lon)
   logger.info('Done')
 
 ## HELPER FUNCTIONS
@@ -49,12 +49,16 @@ def convert_to_nb(nb_str):
       msg = f"failed to convert to int or float: {nb_str}"
       raise typer.BadParameter(msg)
 
-def validate_input(m, s, d, lat, lon):
-  if m not in v.MODELS:
+def validate_input(model, step, days, data, lat, lon):
+  if model not in v.MODELS:
     logger.error_exit('model must be one of: ' + '|'.join(v.MODELS))
-  if s not in v.STEPS:
+  if step not in v.STEPS:
     logger.error_exit('step must be one of: ' + '|'.join(v.STEPS))
-  for elmnt in d:
+  try:
+    int(days)
+  except ValueError:
+    logger.error_exit('days must be an integer, ex --days 4')
+  for elmnt in data:
     if elmnt not in v.DATAS:
       msg = 'data must be a combinaison of: '
       logger.error_exit(msg + ','.join(v.DATAS))
