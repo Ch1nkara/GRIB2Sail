@@ -20,7 +20,8 @@ def download_gribs(m, s, d, lat, lon):
   else:
     logger.error_exit(f"Downloader failed: unexpected model: {m}")
 
-def get_layers(model, urls, header):
+# Optimized resource fetcher with threading and common session
+def get_layers(model, urls, header={}):
   # Downloading every layers
   layers = [None] * len(urls)
   with Progress() as progress:
@@ -40,6 +41,7 @@ def get_layers(model, urls, header):
         progress.advance(task)
   return layers
 
+# Fetch an url and handle errors differently depending on the model
 def fetch(idx, url, headers, model):
   try:
     session = get_session()

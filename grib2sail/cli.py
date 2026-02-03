@@ -10,9 +10,9 @@ app = typer.Typer(help='Download GRIB2 meteorological data')
 # main cli entry point
 @app.command()
 def main(
-    model: str = typer.Option(v.MODELS[0], help='Choose one among: ' + ', '.join(v.MODELS)),
-    step: str = typer.Option(v.STEPS[1], help='Choose one among: '  + ', '.join(v.STEPS)),
-    data: str = typer.Option(v.DATAS[0], help='Choose multiple among: ' + ', '.join(v.DATAS)),
+  model: str = typer.Option(v.MODELS[0], help='Choose one among: ' + ', '.join(v.MODELS)),
+  step: str = typer.Option(v.STEPS[1], help='Choose one among: '  + ', '.join(v.STEPS)),
+  data: str = typer.Option(v.DATAS[0], help='Choose multiple among: ' + ', '.join(v.DATAS)),
   lat: str = typer.Option(..., help='latitudes max and min ex: -7,-2'),
   lon: str = typer.Option(..., help='longitude max and min ex: -62,-60'),
   debug: bool = typer.Option(False, help='Enable debug prints'),
