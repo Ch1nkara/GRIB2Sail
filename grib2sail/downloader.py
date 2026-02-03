@@ -15,11 +15,11 @@ def get_session():
     thread_local.session = requests.Session()
   return thread_local.session
 
-def download_gribs(m, s, d, lat, lon):
-  if m.startswith('arome'):
-    download_arom(m, s, d, lat, lon)
+def download_gribs(model, step, days, data, lat, lon):
+  if model.startswith('arome'):
+    download_arom(model, step, days, data, lat, lon)
   else:
-    logger.error_exit(f"Downloader failed: unexpected model: {m}")
+    logger.error_exit(f"Downloader failed: unexpected model: {model}")
 
 # Optimized resource fetcher with threading and common session
 def get_layers(model, urls, header={}):

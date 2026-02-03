@@ -8,7 +8,7 @@ import grib2sail.downloader as d
 from grib2sail.logger import logger
 from grib2sail.token import get_arome_token
 
-def download_arom(model, step, data, lat, lon):
+def download_arom(model, step, days, data, lat, lon):
   token = get_arome_token()
   # Coverages list all the individual layers categories to download
   coverages = []
@@ -50,9 +50,10 @@ def download_arom(model, step, data, lat, lon):
 
   # Select forecast prevision time based on user input
   # 3600 means layer is the prevision for 1h after latestRun
+  nbDay = 1 if days == "1" else 2
   times = list(range(
     int(step[:-1]) * 3600,
-    172800+1,
+    nbDay * 24 * 60 * 60 + 1,
     int(step[:-1]) * 3600)
   )
   logger.debug(f"Forecast to download are {times}")
