@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import requests
+from pathlib import Path
 from rich.progress import Progress
 
 from grib2sail.logger import logger
@@ -54,3 +55,14 @@ def fetch(idx, url, headers, model):
     else:
       logger.error_exit(f"Download failed: {e}")
     return idx, None
+
+# Output the file once all the layers have been downloaded
+def write_file(model, run, step, layers):
+  logger.debug("writing file for model {model}, {len(layers)}")
+  file = Path(f"{model}_{run}_{step}.grib2")
+  file.unlink(missing_ok=True)
+  with open(file, "wb") as outfile:
+    for layer in layers:
+      if layer:
+        outfile.write(layer)
+

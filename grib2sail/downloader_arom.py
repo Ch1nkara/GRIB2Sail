@@ -1,4 +1,3 @@
-from pathlib import Path
 import re
 import requests
 import time as t
@@ -11,18 +10,14 @@ from grib2sail.token import get_arome_token
 
 def download_arom(model, step, data, lat, lon):
   token = get_arome_token()
-  
   # Coverages list all the individual layers categories to download
   coverages = []
-  if v.DATAS[0] in data:
-    coverages += [va.AROM_DATAS['wind_u'], va.AROM_DATAS['wind_v']]
-  if v.DATAS[1] in data:
-    coverages += [va.AROM_DATAS['wind_gust']]
-  if v.DATAS[2] in data:
-    coverages += [va.AROM_DATAS['pressure']]
-  if v.DATAS[3] in data:
-    coverages += [va.AROM_DATAS['cloud']]
-  
+  for param in data:
+    if param == v.DATAS[0]:
+      coverages += [va.AROM_DATAS['wind_u'], va.AROM_DATAS['wind_v']]
+    else:
+      coverages += [va.AROM_DATAS[param]]
+
   # Get latest available forecast date from arome /GetCapabilities api endpoint
   logger.info('Finding latest available forecast')
   session = d.get_session()
@@ -95,14 +90,9 @@ def download_arom(model, step, data, lat, lon):
       if i+100 < len(urls):
         logger.info('Sleeping 1 minute...')
         t.sleep(60)
-  
-  # Output the file once all the layers have been downloaded
-  file = Path(f"{model}_{latestRun}_{step}.grib2")
-  file.unlink(missing_ok=True)
-  with open(file, "wb") as outfile:
-    for layer in layers:
-      if layer:
-        outfile.write(layer)
+
+  # Write the grib file as the concatenation of the layers
+  d.write_file(model, latestRun, step, layers)
 
 def handle_fetch_error_arom(e):
   if isinstance(e, requests.exceptions.HTTPError):
