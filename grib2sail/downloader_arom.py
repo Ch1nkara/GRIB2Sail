@@ -92,8 +92,12 @@ def download_arom(model, step, days, data, lat, lon):
         logger.info('Sleeping 1 minute...')
         t.sleep(60)
 
+  # Format output file name 
+  run = latestRun.replace('-', '')
+  run = re.sub(r'T(00|06|12|18)\.00\.00Z', r'-\1z', run)
+
   # Write the grib file as the concatenation of the layers
-  d.write_file(model, latestRun, step, layers)
+  d.write_file(model, run, step, layers)
 
 def handle_fetch_error_arom(e):
   if isinstance(e, requests.exceptions.HTTPError):
@@ -104,3 +108,4 @@ def handle_fetch_error_arom(e):
     logger.debug(f"Error was {e}")
   else:
     logger.error_exit(f"Download failed: {e}")
+
