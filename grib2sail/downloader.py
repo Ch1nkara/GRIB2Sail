@@ -6,6 +6,7 @@ from rich.progress import Progress
 
 from grib2sail.logger import logger
 from grib2sail.downloader_arom import handle_fetch_error_arom, download_arom
+from grib2sail.downloader_gfs import download_gfs
 import grib2sail.variables as v
 
 thread_local = threading.local()
@@ -18,6 +19,8 @@ def get_session():
 def download_gribs(model, step, days, data, lat, lon):
   if model.startswith('arome'):
     download_arom(model, step, days, data, lat, lon)
+  elif model == 'gfs':
+    download_gfs(model, step, days, data, lat, lon)
   else:
     logger.error_exit(f"Downloader failed: unexpected model: {model}")
 
@@ -58,7 +61,6 @@ def fetch(idx, url, headers, model):
 
 # Output the file once all the layers have been downloaded
 def write_file(model, run, step, layers):
-  logger.debug("writing file for model {model}, {len(layers)}")
   file = Path(f"{model}_{run}_{step}.grib2")
   file.unlink(missing_ok=True)
   with open(file, "wb") as outfile:

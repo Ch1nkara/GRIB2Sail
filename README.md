@@ -13,8 +13,13 @@
 </p>
 
 Currently the supported models are:
- - AROME
+ - AROME (001 and 0025)
  - AROME ANTILLE
+ - AROME GUYANE
+ - AROME INDIEN
+ - AROME NOUVELLE CALEDONIE
+ - AROME POLYNESIE
+ - GFS (0025)
 
 ## Installation
 
@@ -58,6 +63,6 @@ It can now be imported in a navigation software such as OpenCPN
 
 This is still the early stage of the development the main upcoming features 
 are:
- - adding more supported models (arpege, gfs, ecmwf...)
+ - adding more supported models (arpege, ecmwf...)
  - adding more supported variables (rain, sea state)
  - adding a GUI
