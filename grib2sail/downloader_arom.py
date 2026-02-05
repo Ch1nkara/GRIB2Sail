@@ -10,6 +10,8 @@ from grib2sail.token import get_arome_token
 
 def download_arom(model, step, days, data, lat, lon):
   token = get_arome_token()
+  header = {'Authorization': f"Bearer {token}"}
+
   # Coverages list all the individual layers categories to download
   coverages = []
   for param in data:
@@ -24,29 +26,29 @@ def download_arom(model, step, days, data, lat, lon):
   try:
     capa = session.get(
       va.AROM_URLS[f"{model}_capa"], 
-      headers = {'Authorization': f"Bearer {token}"},
-      timeout = 60,
+      headers = header,
+      timeout = 30,
     )
   except Exception as e:
     logger.error_exit(f"Failed to contact METEO FRANCE servers: {e}")
   
   # Parse the GetCapabilities XML response to find the latest available coverage
   lines = [line for line in capa.text.splitlines() if coverages[0] in line]
-  if lines:
-    # Forecast available dates look like 1970-01-01T00:00:00Z
-    # The last line holds the lastest available forecast run
-    latestRun = re.search(
-      r"\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}Z",
-      lines[-1]
-    )
-    if latestRun:
-      latestRun = latestRun.group()
-    else:
-      msg = "Error fetching AROM capabilities, couldn't find latest date"
-      logger.error_exit(msg)
+  # Forecast available dates look like 1970-01-01T00:00:00Z
+  # The last 2 lines hold the 2 lastest available forecast run
+  last2run = []
+  if len(lines) >= 2:
+    for line in lines[-2:][::-1]:
+      match = re.search(r"\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}Z", line)
+      if match:
+        last2run.append(match.group())
+      else:
+        msg = "Error fetching AROM capabilities, couldn't parse latest run"
+        logger.error_exit(msg)
   else:
     msg = "Error fetching AROM capabilities, couldn't find latest run"
     logger.error_exit(msg)
+  logger.debug(f"latest 2 runs are {last2run[0]} and {last2run[1]}")
 
   # Select forecast prevision time based on user input
   # 3600 means layer is the prevision for 1h after latestRun
@@ -59,20 +61,21 @@ def download_arom(model, step, days, data, lat, lon):
   logger.debug(f"Forecast to download are {times}")
 
   # Generating the urls to retreive requested layers
-  header = {'Authorization': f"Bearer {token}"}
-  urls = []
-  for coverage in coverages:
-    for time in times:
-      paramCovId = f"&coverageid={coverage}{latestRun}"
-      subTime = f"&subset=time({time})"
-      subLat = f"&subset=lat({lat[0]},{lat[1]})"
-      subLon = f"&subset=long({lon[0]},{lon[1]})"
-      if 'SPECIFIC_HEIGHT' in coverage:
-        subHeight = '&subset=height(10)'
-      else:
-        subHeight = ''
-      paramSubset = subTime + subLat + subLon + subHeight
-      urls.append(va.AROM_URLS[f"{model}_cov"]+ paramCovId + paramSubset)
+  latestRun = last2run[0]
+  urls = generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon)
+
+  # If the last run does not have all the required layers yet,
+  # fallback to the previous run
+  try:
+     lastLayer = session.get(
+      urls[-1],
+      headers = header,
+      timeout = 30,
+    )
+  except Exception as e:
+    logger.warning('The latest run does not have all the layers yet, using the one before')
+    latestRun = last2run[1]
+    urls = generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon)
 
   # Downloading the layers
   layers = []
@@ -108,4 +111,20 @@ def handle_fetch_error_arom(e):
     logger.debug(f"Error was {e}")
   else:
     logger.error_exit(f"Download failed: {e}")
+
+def generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon):
+  urls = []
+  for coverage in coverages:
+    for time in times:
+      paramCovId = f"&coverageid={coverage}{latestRun}"
+      subTime = f"&subset=time({time})"
+      subLat = f"&subset=lat({lat[0]},{lat[1]})"
+      subLon = f"&subset=long({lon[0]},{lon[1]})"
+      if 'SPECIFIC_HEIGHT' in coverage:
+        subHeight = '&subset=height(10)'
+      else:
+        subHeight = ''
+      paramSubset = subTime + subLat + subLon + subHeight
+      urls.append(va.AROM_URLS[f"{model}_cov"]+ paramCovId + paramSubset)
+  return urls
 
