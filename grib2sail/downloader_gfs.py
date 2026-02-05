@@ -40,8 +40,7 @@ def download_gfs(model, step, days, data, lat, lon):
   logger.debug(f"First url to download is {urls[0]}")
   layers = d.get_layers(model, urls)
 
-  # Write the grib file as the concatenation of the layers
-  d.write_file(model, f"{date}-{run}z", step, layers)
+  return layers, run
 
 def find_latest_forecast(session, lastLayer):
   today = datetime.today()
