@@ -25,7 +25,7 @@ def download_gfs(model, step, days, data, lat, lon):
     logger.warning(f"Requesting {days} days, max is 16")
     days = "16"
   # Forecast is available on an hourly basis until day 5 then on a 3h basis
-  if step == '1h' and days > 5 :
+  if step == '1h' and int(days) > 5 :
     logger.warning('Only the first 5 days can have a step of 1h, the rest will have a 3h step')
     hours = list(range(0, 120, 1)) + list(range(120, 385, 3))
   else:
