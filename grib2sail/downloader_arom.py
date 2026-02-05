@@ -102,16 +102,6 @@ def download_arom(model, step, days, data, lat, lon):
   # Write the grib file as the concatenation of the layers
   d.write_file(model, run, step, layers)
 
-def handle_fetch_error_arom(e):
-  if isinstance(e, requests.exceptions.HTTPError):
-    url = e.response.url
-    layer = re.search(r"coverageid=(.*?)__", url).group(1)
-    time = int(re.search(r"subset=time\(([^()]*)", url).group(1)) / 3600
-    logger.warning(f"Missing layer: {layer} at time: {int(time)}h")
-    logger.debug(f"Error was {e}")
-  else:
-    logger.error_exit(f"Download failed: {e}")
-
 def generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon):
   urls = []
   for coverage in coverages:

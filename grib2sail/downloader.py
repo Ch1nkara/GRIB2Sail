@@ -5,7 +5,7 @@ from pathlib import Path
 from rich.progress import Progress
 
 from grib2sail.logger import logger
-from grib2sail.downloader_arom import handle_fetch_error_arom, download_arom
+from grib2sail.downloader_arom import download_arom
 from grib2sail.downloader_gfs import download_gfs
 import grib2sail.variables as v
 
@@ -53,10 +53,7 @@ def fetch(idx, url, headers, model):
     r.raise_for_status()
     return idx, r.content
   except Exception as e:
-    if model in v.MODELS[:2]:
-      handle_fetch_error_arom(e)
-    else:
-      logger.error_exit(f"Download failed: {e}")
+    logger.error_exit(f"Download failed: {e}")
     return idx, None
 
 # Output the file once all the layers have been downloaded
