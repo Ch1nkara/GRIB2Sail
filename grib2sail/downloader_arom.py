@@ -24,11 +24,7 @@ def download_arom(model, step, days, data, lat, lon):
   logger.info('Finding latest available forecast')
   session = d.get_session()
   try:
-    capa = session.get(
-      va.AROM_URLS[f"{model}_capa"], 
-      headers = header,
-      timeout = 30,
-    )
+    capa = session.get(va.AROM_URLS[f"{model}_capa"], headers=header, timeout=60)
   except Exception as e:
     logger.error_exit(f"Failed to contact METEO FRANCE servers: {e}")
   
@@ -67,13 +63,12 @@ def download_arom(model, step, days, data, lat, lon):
   # If the last run does not have all the required layers yet,
   # fallback to the previous run
   try:
-     lastLayer = session.get(
-      urls[-1],
-      headers = header,
-      timeout = 30,
-    )
+    lastLayer = session.get(urls[-1], headers=header, timeout=60)
+    lastLayer.raise_for_status()
   except Exception as e:
-    logger.warning('The latest run does not have all the layers yet, using the one before')
+    msg = f"The latest run: {last2run[0]} does not have all the layers yet"
+    msg += f", using the one before: {last2run[1]}"
+    logger.warning(msg)
     latestRun = last2run[1]
     urls = generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon)
 
