@@ -99,8 +99,7 @@ def download_arom(model, step, days, data, lat, lon):
   run = latestRun.replace('-', '')
   run = re.sub(r'T(00|06|12|18)\.00\.00Z', r'-\1z', run)
 
-  # Write the grib file as the concatenation of the layers
-  d.write_file(model, run, step, layers)
+  return layers, run
 
 def generate_arom_layers_urls(model, coverages, latestRun, times, lat, lon):
   urls = []

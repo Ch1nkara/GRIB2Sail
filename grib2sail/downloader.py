@@ -16,13 +16,14 @@ def get_session():
     thread_local.session = requests.Session()
   return thread_local.session
 
-def download_gribs(model, step, days, data, lat, lon):
+def download_gribs(model, step, days, data, lat, lon, outdir):
   if model.startswith('arome'):
-    download_arom(model, step, days, data, lat, lon)
+    layers, run = download_arom(model, step, days, data, lat, lon)
   elif model == 'gfs':
-    download_gfs(model, step, days, data, lat, lon)
+    layers, run = download_gfs(model, step, days, data, lat, lon)
   else:
     logger.error_exit(f"Downloader failed: unexpected model: {model}")
+  write_file(model, run, step, layers, outdir)
 
 # Optimized resource fetcher with threading and common session
 def get_layers(model, urls, header={}):
@@ -57,11 +58,14 @@ def fetch(idx, url, headers, model):
     return idx, None
 
 # Output the file once all the layers have been downloaded
-def write_file(model, run, step, layers):
-  file = Path(f"{model}_{run}_{step}.grib2")
-  file.unlink(missing_ok=True)
-  with open(file, "wb") as outfile:
-    for layer in layers:
-      if layer:
-        outfile.write(layer)
+def write_file(model, run, step, layers, outdir):
+  file = Path(outdir) / f"{model}_{run}_{step}.grib2"
+  try:
+    file.unlink(missing_ok=True)
+    with open(file, "wb") as outfile:
+      for layer in layers:
+        if layer:
+          outfile.write(layer)
+  except Exception as e:
+    logger.error_exit(f"Failed to write the grib file: {e}")
 
