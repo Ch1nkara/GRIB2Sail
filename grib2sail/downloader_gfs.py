@@ -6,10 +6,20 @@ import grib2sail.downloader as d
 from grib2sail.logger import logger
 
 def download_gfs(model, step, days, data, lat, lon):
+  if int(days) > 16:
+    logger.warning(f"Requesting {days} days, max is 16")
+    days = "16"
+  # Forecast is available on an hourly basis until day 5 then on a 3h basis
+  if step == '1h' and int(days) > 5 :
+    logger.warning('Only the first 5 days can have a step of 1h, the rest will have a 3h step')
+    hours = list(range(0, 120, 1)) + list(range(120, 385, 3))
+  else:
+      hours = list(range(0, 24 * int(days) + 1, int(step[:-1])))
+
   session = d.get_session()
   # Get latest available forecast date and run by trying from most recent
   logger.info('Finding latest available forecast')
-  date, run = find_latest_forecast(session)
+  date, run = find_latest_forecast(session, f"f{hours[-1]:03d}")
   logger.debug(f"Latest forecast is {date}, {run}z")
 
   # Coverages list all the individual layers categories to download
@@ -21,15 +31,6 @@ def download_gfs(model, step, days, data, lat, lon):
       coverages += [vg.GFS_DATAS[param]]
 
   urls = []
-  if int(days) > 16:
-    logger.warning(f"Requesting {days} days, max is 16")
-    days = "16"
-  # Forecast is available on an hourly basis until day 5 then on a 3h basis
-  if step == '1h' and int(days) > 5 :
-    logger.warning('Only the first 5 days can have a step of 1h, the rest will have a 3h step')
-    hours = list(range(0, 120, 1)) + list(range(120, 385, 3))
-  else:
-      hours = list(range(0, 24 * int(days) + 1, int(step[:-1])))
   for hour in hours:
     url = vg.API_URL 
     url += f"?dir=%2Fgfs.{date}%2F{run}%2Fatmos&file=gfs.t{run}z.pgrb2.0p25.f{hour:03d}"
@@ -42,7 +43,7 @@ def download_gfs(model, step, days, data, lat, lon):
   # Write the grib file as the concatenation of the layers
   d.write_file(model, f"{date}-{run}z", step, layers)
 
-def find_latest_forecast(session):
+def find_latest_forecast(session, lastLayer):
   today = datetime.today()
   dates = [
     (today + timedelta(days=1)).strftime("%Y%m%d"), 
@@ -54,7 +55,7 @@ def find_latest_forecast(session):
     for run in runs:
       url = (
         f"{vg.PROD_URL}/gfs.{date}/{run}/atmos/"
-        f"gfs.t{run}z.pgrb2.0p25.f000"
+        f"gfs.t{run}z.pgrb2.0p25.{lastLayer}"
       )
       try:
         r = session.head(url, timeout=10)
