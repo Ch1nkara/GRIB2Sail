@@ -10,10 +10,6 @@ repository = "https://github.com/Ch1nkara/GRIB2Sail"
 description = "Grib files downloader for sailing purposes"
 readme = "README.md"
 
-[workspace.metadata.release]
-allow-branch = ["main"]
-sign-commit = false
-sign-tag = false
-push = true
-tag-name = "v{{version}}"
-pre-release-commit-message = "release: v{{version}}"
+[profile.dist]
+inherits = "release"
+lto = "thin"
