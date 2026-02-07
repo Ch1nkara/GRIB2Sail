@@ -1,7 +1,13 @@
 [package]
-name = "cli"
-version = "0.1.0"
-edition = "2024"
+name = "grib2sail-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "grib2sail-cli"
+path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4.43"
@@ -9,3 +15,4 @@ clap = { version = "4.5.57", features = ["derive"] }
 env_logger = "0.11.8"
 log = "0.4.29"
 rust-core = { path = "../rust-core" }
+self_update = "0.42.0"

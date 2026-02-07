@@ -1,6 +1,19 @@
 [workspace]
-members = [
-    "rust-core",
-    "cli",
-]
+members = ["rust-core", "cli"]
 resolver = "3"
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Ch1nkara/GRIB2Sail"
+description = "Grib files downloader for sailing purposes"
+readme = "README.md"
+
+[workspace.metadata.release]
+allow-branch = ["main"]
+sign-commit = false
+sign-tag = false
+push = true
+tag-name = "v{{version}}"
+pre-release-commit-message = "release: v{{version}}"

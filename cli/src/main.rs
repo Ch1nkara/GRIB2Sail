@@ -1,14 +1,15 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use self_update::backends::github;
+use std::process;
 use chrono::Local;
 use env_logger::Builder;
-use log::Level;
 use std::io::Write;
 
 use rust_core::utils;
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail_cli")]
-#[command(about= "A cli for GRIB2Sail", long_about = None)]
+#[command(about= "A cli for GRIB2Sail", long_about = None, version)]
 struct Cli {
     #[arg(long, short, default_value = utils::MODELS[0])]
     model: String,
@@ -16,16 +17,16 @@ struct Cli {
     #[arg(long, short, default_value = utils::STEPS[1])]
     step: String,
 
-    #[arg(long, short='D', default_value = "2")]
+    #[arg(long, short='D', default_value = "1")]
     days: String,
 
     #[arg(long, short, default_value = utils::DATAS[0])]
     data: String,
 
-    #[arg(long, short='L')]
+    #[arg(long, short='L', default_value = "44,45")]
     lat: String,
 
-    #[arg(long, short)]
+    #[arg(long, short, default_value = "5,6")]
     lon: String,
 
     #[arg(long, short, default_value = ".")]
@@ -33,6 +34,14 @@ struct Cli {
 
     #[arg(long, action = clap::ArgAction::SetTrue)]
     debug: bool,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    SelfUpdate,
 }
 
 fn error_exit(msg: &str) -> ! {
@@ -70,9 +79,33 @@ fn init_logger() {
         .init();
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>>{
     init_logger();
+
     let args = Cli::parse();
+
+    match &args.command {
+
+        Some(Commands::SelfUpdate) => {
+            if let Err(e) = github::Update::configure()
+                .repo_owner("Ch1nkara")
+                .repo_name("GRIB2Sail")
+                .bin_name("grib2sail-cli")
+                .show_download_progress(true)
+                .current_version(env!("CARGO_PKG_VERSION"))
+                .build()?
+                .update()
+            {
+                eprintln!("Update failed: {}", e);
+                process::exit(1)
+            } else {
+                println!("Updated successfully!");
+            }
+        }
+        None => {
+            println!("non self updater provided");
+        }
+    }
 
     let latitudes = parse_coords(&args.lat);
     let longitudes = parse_coords(&args.lon);
@@ -87,5 +120,6 @@ fn main() {
     println!("debug: {}", args.debug);
     //utils::download_grib(model, step, days, data, lat, lon)
     utils::download_grib("dummy test");
+    Ok(())
 }
 
