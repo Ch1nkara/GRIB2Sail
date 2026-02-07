@@ -3,3 +3,4 @@ members = [
     "rust-core",
     "cli",
 ]
+resolver = "3"
