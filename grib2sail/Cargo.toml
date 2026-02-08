@@ -1,14 +1,22 @@
-[workspace]
-members = ["rust-core", "cli"]
-resolver = "3"
-
-[workspace.package]
+[package]
+name = "grib2sail"
+description = "Grib files downloader for sailing purposes"
 version = "0.5.0-alpha.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Ch1nkara/GRIB2Sail"
-description = "Grib files downloader for sailing purposes"
 readme = "README.md"
+
+[[bin]]
+name = "grib2sail-cli"
+path = "src/main.rs"
+
+[dependencies]
+chrono = "0.4.43"
+clap = { version = "4.5.57", features = ["derive"] }
+env_logger = "0.11.8"
+log = "0.4.29"
+self_update = "0.42.0"
 
 [workspace.metadata.release]
 allow-branch = ["main", "dev"]

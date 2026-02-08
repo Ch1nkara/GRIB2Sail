@@ -5,22 +5,22 @@ use chrono::Local;
 use env_logger::Builder;
 use std::io::Write;
 
-use rust_core::utils;
+use grib2sail::prelude::*;
 
 #[derive(Parser, Debug)]
-#[command(name = "grib2sail_cli")]
+#[command(name = "grib2sail")]
 #[command(about= "A cli for GRIB2Sail", long_about = None, version)]
 struct Cli {
-    #[arg(long, short, default_value = utils::MODELS[0])]
+    #[arg(long, short, default_value = MODELS[0])]
     model: String,
 
-    #[arg(long, short, default_value = utils::STEPS[1])]
+    #[arg(long, short, default_value = STEPS[1])]
     step: String,
 
     #[arg(long, short='D', default_value = "1")]
     days: String,
 
-    #[arg(long, short, default_value = utils::DATAS[0])]
+    #[arg(long, short, default_value = DATAS[0])]
     data: String,
 
     #[arg(long, short='L', default_value = "44,45")]
@@ -119,7 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     println!("Output Directory: {:?}", args.outdir);
     println!("debug: {}", args.debug);
     //utils::download_grib(model, step, days, data, lat, lon)
-    utils::download_grib("dummy test");
+    download_grib("dummy test");
     Ok(())
 }
 
