@@ -10,7 +10,7 @@ push = true
 tag = true
 tag-name = "v{{version}}"
 pre-release-commit-message = "Release: v{{version}}"
-pre-release-hook = ["git", "cliff", "-o", "../CHANGELOG.md", "--tag", "{{version}}"]
+pre-release-hook = ["git", "cliff", "-o", "../CHANGELOG.md", "--unreleased", "--tag", "{{version}}"]
 
 # The profile that 'dist' will build with
 [profile.dist]
