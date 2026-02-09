@@ -1,7 +1,10 @@
 use log::{debug, info};
-pub fn download_grib(url: &str) -> String {
+
+use crate::utils::config;
+
+pub fn download_grib(grib: config::Grib) -> Vec<u8> {
     // TODO real stuff
     debug!("example debug log");
     info!("example info log");
-    format!("Faker download from {}", url)
+    return b"Faker download from https://example.com".to_vec()
 }
