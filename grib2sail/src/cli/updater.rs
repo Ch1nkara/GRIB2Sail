@@ -16,6 +16,7 @@ pub fn self_update() {
                 error!("Update failed: {}", e);
                 process::exit(1);
             } else {
+                info!(""); // add a feedline after update() output in stdout
                 info!("Updated successfully!");
             }
         }

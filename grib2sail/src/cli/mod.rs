@@ -1,4 +1,5 @@
 use clap::{Parser, ArgAction};
+use indicatif::{ProgressBar, ProgressStyle};
 use log::{error, debug, info};
 use std::{fs, process, path::Path};
 
@@ -65,7 +66,7 @@ pub fn start_cli(){
     let latitudes = parse_coords(&args.lat);
     let longitudes = parse_coords(&args.lon);
 
-    let grib = g2s::Grib{
+    let mut grib = g2s::Grib {
         model: args.model,
         step: args.step,
         days: args.days,
@@ -74,11 +75,26 @@ pub fn start_cli(){
         longitude_min: longitudes.iter().cloned().fold(f64::INFINITY, f64::min),
         longitude_max: longitudes.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         components: args.components,
+        content: None,
+        run: None,
     };
-    debug!("grib generated is \n {:?}", grib);
+    debug!("Grib generated is \n {:?}", grib);
 
-    let raw_data: Vec<u8> = g2s::download_grib(grib);
-    match fs::write(outdir.join("myfile.grib"), raw_data) {
+    let pb = ProgressBar::new(100);
+    pb.set_style(ProgressStyle::default_bar());
+
+    match g2s::download_grib(grib, |progress| { pb.set_position(progress as u64); }) {
+        Ok(full_grib) => { grib = full_grib },
+        Err(e) => { error_exit(&e) },
+    }
+
+    let filename = format!(
+        "{}_{}_{}.grib2",
+        grib.model.to_string(),
+        grib.run.unwrap_or_default(),
+        grib.step.to_string()
+    );
+    match fs::write(outdir.join(filename), grib.content.unwrap_or_default()) {
         Ok(_) => {info!("Done")},
         Err(e) => {error!("Failed to write the grib file: {}", e)},
     }
