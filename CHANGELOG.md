@@ -1,3 +1,16 @@
+## [0.5.0-alpha.6] - 2026-02-09
+
+### 🚀 Features
+
+- Added progress bar, Results and more
+
+### 🐛 Bug Fixes
+
+- Clarify lib import in main
+
+### 🚜 Refactor
+
+- Added cli module almost functionnal
 ## [0.5.0-alpha.4] - 2026-02-08
 
 ### 💼 Other
