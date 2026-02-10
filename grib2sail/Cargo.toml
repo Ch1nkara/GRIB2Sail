@@ -15,9 +15,12 @@ chrono = "0.4.43"
 clap = { version = "4.5.57", features = ["derive"] }
 colored = "3.1.1"
 env_logger = "0.11.8"
+futures = "0.3.31"
 indicatif = "0.18.3"
 log = "0.4.29"
+reqwest = "0.13.2"
 self_update = "0.42.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
+tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 

@@ -44,7 +44,7 @@ struct Cli {
     self_update: bool,
 }
 
-pub fn start_cli(){
+pub async fn start_cli(){
     let args = Cli::parse();
 
     if args.debug {
@@ -80,9 +80,23 @@ pub fn start_cli(){
     };
     debug!("Grib generated is \n {:?}", grib);
 
-    let pb = ProgressBar::new(100);
-    pb.set_style(ProgressStyle::default_bar());
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let handle = tokio::spawn(async move {
+        g2s::download_grib(grib, tx).await
+    });
 
+    let pb = ProgressBar::new(100);
+    while let Some(event) = rx.recv().await {
+        match event {
+            g2s::DownloadEvent::Started {total} => pb.set_length(total as u64),
+            g2s::DownloadEvent::FinishedOne { .. } => pb.inc(1),
+            g2s::DownloadEvent::FinishedAll => pb.finish(),
+        }
+    }
+
+    let data = handle.await.unwrap().unwrap();
+    info!("data is {:?}", data)
+/*
     match g2s::download_grib(grib, |progress| { pb.set_position(progress as u64); }) {
         Ok(full_grib) => { grib = full_grib },
         Err(e) => { error_exit(&e) },
@@ -97,7 +111,7 @@ pub fn start_cli(){
     match fs::write(outdir.join(filename), grib.content.unwrap_or_default()) {
         Ok(_) => {info!("Done")},
         Err(e) => {error!("Failed to write the grib file: {}", e)},
-    }
+    }*/
 }
 
 fn error_exit(msg: &str) -> ! {

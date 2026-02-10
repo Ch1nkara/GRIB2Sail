@@ -47,3 +47,14 @@ pub enum Component {
     CloudCover
 }
 
+#[derive(Debug, Clone)]
+pub enum DownloadEvent {
+    Started {
+        total: usize,
+    },
+    FinishedOne {
+        index: usize,
+        total: usize,
+    },
+    FinishedAll
+}
