@@ -1,5 +1,6 @@
 use clap::ValueEnum;
 use strum_macros::Display;
+use reqwest::header::HeaderMap;
 
 #[derive(Debug)]
 pub struct Grib {
@@ -57,4 +58,10 @@ pub enum DownloadEvent {
         total: usize,
     },
     FinishedAll
+}
+
+#[derive(Debug, Clone)]
+pub struct Urls {
+    pub urls: Vec<String>,
+    pub headers: HeaderMap,
 }
