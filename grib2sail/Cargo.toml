@@ -22,5 +22,6 @@ reqwest = "0.13.2"
 self_update = "0.42.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
+thiserror = "2.0.18"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 

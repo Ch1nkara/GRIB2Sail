@@ -1,6 +1,8 @@
 use clap::ValueEnum;
 use strum_macros::Display;
-use reqwest::header::HeaderMap;
+use reqwest::{Client, header::HeaderMap};
+use tokio::sync::mpsc::UnboundedSender;
+use thiserror::Error;
 
 #[derive(Debug)]
 pub struct Grib {
@@ -12,8 +14,8 @@ pub struct Grib {
     pub longitude_max: f64,
     pub longitude_min: f64,
     pub components: Vec<Component>,
-    pub content: Option<Vec<u8>>,
-    pub run: Option<String>,
+    pub content: Vec<u8>,
+    pub run: String
 }
 
 #[derive(Clone, ValueEnum, Debug, Display)]
@@ -53,15 +55,23 @@ pub enum DownloadEvent {
     Started {
         total: usize,
     },
-    FinishedOne {
-        index: usize,
-        total: usize,
-    },
+    FinishedOne,
     FinishedAll
 }
 
 #[derive(Debug, Clone)]
-pub struct Urls {
-    pub urls: Vec<String>,
+pub struct ReqwestData {
+    pub client: Client,
+    pub events: UnboundedSender<DownloadEvent>,
     pub headers: HeaderMap,
+    pub urls: Vec<String>,
+}
+
+#[derive(Debug, Error)]
+pub enum GribError {
+    #[error("Network error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+
+    #[error("Invalid Configuration: {0}")]
+    InvalidConf(String),
 }

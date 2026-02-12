@@ -1,5 +1,5 @@
 use clap::{Parser, ArgAction};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use log::{error, debug, info};
 use std::{fs, process, path::Path};
 
@@ -75,8 +75,8 @@ pub async fn start_cli(){
         longitude_min: longitudes.iter().cloned().fold(f64::INFINITY, f64::min),
         longitude_max: longitudes.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         components: args.components,
-        content: None,
-        run: None,
+        content: Vec::new(),
+        run: String::new(),
     };
     debug!("Grib generated is \n {:?}", grib);
 
@@ -89,29 +89,25 @@ pub async fn start_cli(){
     while let Some(event) = rx.recv().await {
         match event {
             g2s::DownloadEvent::Started {total} => pb.set_length(total as u64),
-            g2s::DownloadEvent::FinishedOne { .. } => pb.inc(1),
+            g2s::DownloadEvent::FinishedOne => pb.inc(1),
             g2s::DownloadEvent::FinishedAll => pb.finish(),
         }
     }
 
-    let data = handle.await.unwrap().unwrap();
-    info!("data is {:?}", data)
-/*
-    match g2s::download_grib(grib, |progress| { pb.set_position(progress as u64); }) {
-        Ok(full_grib) => { grib = full_grib },
-        Err(e) => { error_exit(&e) },
-    }
+    // TODO remove unwrap double
+    let grib = handle.await.unwrap().unwrap();
+    debug!("grib is {:?}", grib);
 
     let filename = format!(
         "{}_{}_{}.grib2",
         grib.model.to_string(),
-        grib.run.unwrap_or_default(),
-        grib.step.to_string()
+        grib.run,
+        grib.step,
     );
-    match fs::write(outdir.join(filename), grib.content.unwrap_or_default()) {
+    match fs::write(outdir.join(filename), grib.content) {
         Ok(_) => {info!("Done")},
         Err(e) => {error!("Failed to write the grib file: {}", e)},
-    }*/
+    }
 }
 
 fn error_exit(msg: &str) -> ! {

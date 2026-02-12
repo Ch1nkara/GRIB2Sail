@@ -1,25 +1,25 @@
 use log::{debug, info};
+use reqwest::header::{HeaderValue, CONTENT_TYPE};
 
-use crate::utils::config;
+use crate::utils::{downloader::fetch_data, config::{Grib, GribError, DownloadEvent, ReqwestData}};
 
-pub fn download_grib(mut grib: config::Grib, progress_callback: impl Fn(u8))
--> Result<config::Grib, String> {
-    let total_steps = 100;
-    for step in 0..total_steps {
-        // Simulate some work
-        std::thread::sleep(std::time::Duration::from_millis(50));
+pub async fn download_grib(mut grib: Grib, mut request: ReqwestData)
+-> Result<Grib, GribError> {
+    let dummy_urls: Vec<String> = vec![
+        String::from("http://jsonplaceholder.typicode.com/todos/1"),
+        String::from("http://jsonplaceholder.typicode.com/todos/1"),
+        String::from("http://jsonplaceholder.typicode.com/todos/1"),
+    ];
 
-        // Calculate progress percentage
-        let progress = ((step + 1) * 100 / total_steps) as u8;
+    request.headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    request.urls = dummy_urls;
 
-        // Notify progress
-        progress_callback(progress);
-    }
-    debug!("example debug log");
-    info!("example info log");
-    grib.run = Some("19700101_18z".to_string());
-    grib.content = Some(b"Faker download from https://example.com".to_vec());
+    let total = request.urls.len();
+
+    let _ = request.events.send(DownloadEvent::Started {total});
+    grib.content = fetch_data(request.clone()).await?;
+
+    let _ = request.events.send(DownloadEvent::FinishedAll);
     Ok(grib)
-        //    Err("Error message".to_string())
 }
 
