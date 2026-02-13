@@ -1,5 +1,5 @@
-mod utils;
+mod core;
 mod meteofrance;
 
-pub use utils::download_grib;
-pub use utils::config::{Grib, Model, Step, Component, DownloadEvent, GribError};
+pub use core::download_grib;
+pub use core::config::{Grib, Model, Step, Component, DownloadEvent, GribError};
