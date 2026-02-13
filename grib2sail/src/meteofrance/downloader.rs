@@ -1,11 +1,13 @@
 use log::{debug, info};
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
 
-use crate::core::{downloader::fetch_data, config::{Grib, GribError, DownloadEvent, ReqwestData}};
+use crate::core::{fetch_data, Grib, GribError, DownloadEvent, ReqwestData};
+
+use super::token::get_token;
 
 pub async fn download_grib(mut grib: Grib, mut request: ReqwestData)
 -> Result<Grib, GribError> {
-    //let token = get_token()?;
+    let token = get_token()?;
     let dummy_urls: Vec<String> = vec![
         String::from("http://jsonplaceholder.typicode.com/todos/1"),
         String::from("http://jsonplaceholder.typicode.com/todos/1"),

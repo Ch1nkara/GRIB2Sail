@@ -2,9 +2,9 @@ use futures::{stream, StreamExt};
 use reqwest::{Client, header::HeaderMap};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::core::config::{Grib, ReqwestData, DownloadEvent, GribError};
 use crate::meteofrance;
 
+use super::config::{Grib, ReqwestData, DownloadEvent, GribError};
 
 pub async fn download_grib(mut grib: Grib, events: UnboundedSender<DownloadEvent>)
 -> Result<Grib, GribError> {
