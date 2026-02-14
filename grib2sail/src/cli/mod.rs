@@ -3,9 +3,11 @@ use indicatif::ProgressBar;
 use log::{error, debug, info};
 use std::{fs, process, path::Path};
 
+use grib2sail as g2s;
+
 mod logger;
 mod updater;
-use grib2sail as g2s;
+mod keyring;
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail-cli")]
@@ -77,6 +79,7 @@ pub async fn start_cli(){
         components: args.components,
         content: Vec::new(),
         run: String::new(),
+        secret: String::new(),
     };
     debug!("Grib generated is \n {:?}", grib);
 

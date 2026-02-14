@@ -1,6 +1,10 @@
-use crate::core::GribError;
+use keyring::Entry;
+use log::info;
 
-pub fn get_token() -> Result<String, GribError> {
-    Ok("Ok".to_string())
+use crate::core::{ReqwestData, GribError};
+
+pub fn get_token(secret: &str, request: ReqwestData) -> Result<String, GribError> {
+    info!("Authenticating to MeteoFrance");
+    Ok(secret.to_string())
 }
 

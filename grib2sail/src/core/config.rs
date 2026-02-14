@@ -3,6 +3,7 @@ use strum_macros::Display;
 use reqwest::{Client, header::HeaderMap};
 use tokio::sync::mpsc::UnboundedSender;
 use thiserror::Error;
+use std::io::Error;
 
 #[derive(Debug)]
 pub struct Grib {
@@ -15,7 +16,8 @@ pub struct Grib {
     pub longitude_min: f64,
     pub components: Vec<Component>,
     pub content: Vec<u8>,
-    pub run: String
+    pub run: String,
+    pub secret: String,
 }
 
 #[derive(Clone, ValueEnum, Debug, Display)]
@@ -74,4 +76,11 @@ pub enum GribError {
 
     #[error("Invalid Configuration: {0}")]
     InvalidConf(String),
+
+    #[error("IO error: {0}")]
+    Io(#[from] Error),
+
+    #[error("Keyring error: {0}")]
+    Keyring(#[from] keyring::Error),
 }
+
