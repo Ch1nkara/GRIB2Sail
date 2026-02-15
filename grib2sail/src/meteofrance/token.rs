@@ -1,4 +1,3 @@
-use keyring::Entry;
 use log::info;
 
 use crate::core::{ReqwestData, GribError};

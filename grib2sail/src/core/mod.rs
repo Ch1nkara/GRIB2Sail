@@ -19,7 +19,7 @@ pub async fn download_grib(mut grib: Grib, events: UnboundedSender<DownloadEvent
     };
 
     if grib.model.to_string().starts_with("arome") {
-         grib = meteofrance::download_grib(grib, request).await?;
+         grib = meteofrance::download_arome_grib(grib, request).await?;
     } else {
         return Err(GribError::InvalidConf(format!("Unexpected model: {}", grib.model)));
     }

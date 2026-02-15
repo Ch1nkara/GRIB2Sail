@@ -1,13 +1,12 @@
+mod logger;
+mod updater;
+mod keyring;
+
+use grib2sail as g2s;
 use clap::{Parser, ArgAction};
 use indicatif::ProgressBar;
 use log::{error, debug, info};
 use std::{fs, process, path::Path};
-
-use grib2sail as g2s;
-
-mod logger;
-mod updater;
-mod keyring;
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail-cli")]
@@ -65,8 +64,22 @@ pub async fn start_cli(){
         error_exit("--outdir must be an existing directory")
     }
 
-    let latitudes = parse_coords(&args.lat);
-    let longitudes = parse_coords(&args.lon);
+    let latitudes = parse_coords(&args.lat).unwrap_or_else(|e| {
+        error_exit(&format!("Failed to parse latitudes: {}", e));
+    });
+    let longitudes = parse_coords(&args.lon).unwrap_or_else(|e| {
+        error_exit(&format!("Failed to parse longitudes: {}", e));
+    });
+
+    let mut secret = String::new();
+    if args.model.to_string().starts_with("arome") {
+        match keyring::get_secret(g2s::AROME_ID) {
+            Ok(s) => secret = s,
+            Err(e) => {
+                error_exit(&format!("Failed to get arome secret from keyring: {}", e));
+            }
+        }
+    }
 
     let mut grib = g2s::Grib {
         model: args.model,
@@ -79,7 +92,7 @@ pub async fn start_cli(){
         components: args.components,
         content: Vec::new(),
         run: String::new(),
-        secret: String::new(),
+        secret: secret,
     };
     debug!("Grib generated is \n {:?}", grib);
 
@@ -118,20 +131,24 @@ fn error_exit(msg: &str) -> ! {
     process::exit(1);
 }
 
-fn parse_coords(coord_str: &str) -> Vec<f64> {
+fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
     let coord: Vec<&str> = coord_str.split(',').collect();
     if coord.len() != 2 {
         let mut msg = String::from("Each --lat and --lon must contain exactly two coordinates");
         msg.push_str(" separated by a comma. Ex: --lat 5.55,6.05");
-        error_exit(&msg);
+        return Err(g2s::GribError::InvalidConf(msg));
     }
     let mut result = Vec::with_capacity(2);
     for c in coord {
         match c.trim().parse::<f64>() {
             Ok(nb) => result.push(nb),
-            Err(_) => error_exit("Each --lat and --lon must be valid numbers. Ex: --lat 5.5,6"),
+            Err(_) => {
+                let mut msg = String::from("Each --lat and --lon must be valid numbers.");
+                msg.push_str("Ex: --lat 5.5,6.3");
+                return Err(g2s::GribError::InvalidConf(msg));
+            }
         }
     }
-    result
+    Ok(result)
 }
 

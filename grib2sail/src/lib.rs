@@ -8,4 +8,4 @@ pub use core::{
     DownloadEvent,
     GribError
 };
-pub use meteofrance::arome_id;
+pub use meteofrance::AROME_ID;

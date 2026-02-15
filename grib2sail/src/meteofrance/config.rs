@@ -1,2 +1,2 @@
-pub static arome_id: &str = "G2S_AROME_BEARER";
+pub static AROME_ID: &str = "G2S_AROME_BEARER";
 
