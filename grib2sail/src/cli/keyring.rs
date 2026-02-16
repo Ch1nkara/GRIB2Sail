@@ -28,9 +28,10 @@ pub fn get_secret(id: &str) -> Result<String, GribError> {
     }
 }
 
-pub fn set_secret(id: &str, secret: &str) -> Result<(), GribError> {
+pub fn delete_secret(id: &str) -> Result<(), GribError> {
     let entry = Entry::new("grib2sail", id)?;
-    entry.set_password(secret)?;
+    entry.delete_credential()?;
+    info!("Entry deleted from keyring");
     Ok(())
 }
 

@@ -5,7 +5,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use thiserror::Error;
 use std::io::Error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Grib {
     pub model: Model,
     pub step: Step,
@@ -28,20 +28,21 @@ pub enum Model {
     AromeAntille,
 }
 
-#[derive(Clone, ValueEnum, Debug, Display)]
+#[derive(Copy, Clone, ValueEnum, Debug, Display)]
+#[repr(usize)]
 pub enum Step {
     #[clap(name = "1h")]
     #[strum(serialize = "1h")]
-    H1,
+    H1 = 1,
     #[clap(name = "3h")]
     #[strum(serialize = "3h")]
-    H3,
+    H3 = 3,
     #[clap(name = "6h")]
     #[strum(serialize = "6h")]
-    H6,
+    H6 = 6,
     #[clap(name = "12h")]
     #[strum(serialize = "12h")]
-    H12,
+    H12 = 12,
 }
 
 #[derive(Clone, ValueEnum, Debug)]

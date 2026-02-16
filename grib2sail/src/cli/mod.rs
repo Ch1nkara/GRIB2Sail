@@ -41,6 +41,9 @@ struct Cli {
     #[arg(long, action = ArgAction::SetTrue)]
     debug: bool,
 
+    #[arg(long, action = ArgAction::SetTrue)]
+    reset_keyring_arome: bool,
+
     #[arg(long, short='u', action = ArgAction::SetTrue)]
     self_update: bool,
 }
@@ -57,6 +60,13 @@ pub async fn start_cli(){
     if args.self_update {
         updater::self_update();
         return
+    }
+
+    if args.reset_keyring_arome {
+        match keyring::delete_secret(g2s::AROME_ID) {
+            Ok(_) => return,
+            Err(e) => error_exit(&format!("Failed to reset arome keyring value: {}", e)),
+        }
     }
 
     let outdir = Path::new(&args.outdir);
@@ -76,7 +86,12 @@ pub async fn start_cli(){
         match keyring::get_secret(g2s::AROME_ID) {
             Ok(s) => secret = s,
             Err(e) => {
-                error_exit(&format!("Failed to get arome secret from keyring: {}", e));
+                error!("{}", e);
+                let mut msg = String::from("No password storing solution available, install");
+                msg.push_str(" one or use the '");
+                msg.push_str(g2s::AROME_ID);
+                msg.push_str("' environement variable");
+                error_exit(&msg);
             }
         }
     }
