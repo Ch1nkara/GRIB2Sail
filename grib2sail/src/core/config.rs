@@ -83,5 +83,8 @@ pub enum GribError {
 
     #[error("Keyring error: {0}")]
     Keyring(#[from] keyring::Error),
+
+    #[error("Error: {0}")]
+    Generic(String),
 }
 

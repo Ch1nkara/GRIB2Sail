@@ -11,7 +11,7 @@ pub async fn download_grib(mut grib: Grib, events: UnboundedSender<DownloadEvent
 -> Result<Grib, GribError> {
     let client = Client::new();
 
-    let mut request = ReqwestData {
+    let request = ReqwestData {
         client: client,
         events: events,
         headers: HeaderMap::new(),

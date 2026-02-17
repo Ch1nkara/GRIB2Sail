@@ -2,6 +2,7 @@ use crate::core::{Grib, Model, Component};
 
 pub static AROME_ID: &str = "G2S_AROME_BEARER";
 pub static TOKEN_URL: &str = "https://portail-api.meteofrance.fr/token";
+pub static WIND_V: &str = "V_COMPONENT_OF_WIND__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND___";
 
 pub struct UrlParams {
     pub grib: Grib,

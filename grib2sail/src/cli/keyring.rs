@@ -21,8 +21,9 @@ pub fn get_secret(id: &str) -> Result<String, GribError> {
             info!("Enter AROME appId:");
             stdin().read_line(&mut secret)?;
 
-            entry.set_password(&secret)?;
-            return Ok(secret)
+            let secret = secret.trim_end();
+            entry.set_password(secret)?;
+            return Ok(secret.to_string())
         }
         Err(e) => return Err(GribError::Keyring(e))
     }

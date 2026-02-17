@@ -96,7 +96,7 @@ pub async fn start_cli(){
         }
     }
 
-    let mut grib = g2s::Grib {
+    let grib = g2s::Grib {
         model: args.model,
         step: args.step,
         days: args.days,
@@ -125,8 +125,14 @@ pub async fn start_cli(){
         }
     }
 
-    // TODO remove unwrap double
-    let grib = handle.await.unwrap().unwrap();
+    let grib: g2s::Grib;
+    match handle.await {
+        Ok(handle_result) => match handle_result {
+            Ok(grib_res) => grib = grib_res,
+            Err(e) => error_exit(&format!("Failed to get the grib: {}", e)),
+        }
+        Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
+    };
     debug!("grib is {:?}", grib);
 
     let filename = format!(
