@@ -1,12 +1,14 @@
+mod keyring;
 mod logger;
 mod updater;
-mod keyring;
 
 use grib2sail as g2s;
-use clap::{Parser, ArgAction};
+
+use clap::{ArgAction, Parser};
 use indicatif::ProgressBar;
-use log::{error, debug, info};
-use std::{fs, process, path::Path};
+use log::{LevelFilter, debug, error, info};
+use std::{fs, path::Path, process};
+use tokio::{spawn, sync::mpsc::unbounded_channel};
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail-cli")]
@@ -29,7 +31,7 @@ struct Cli {
     ]
     components: Vec<g2s::Component>,
 
-    #[arg(long, short='L', allow_hyphen_values = true, default_value = "44,45")]
+    #[arg(long, short = 'L', allow_hyphen_values = true, default_value = "44,45")]
     lat: String,
 
     #[arg(long, short, allow_hyphen_values = true, default_value = "5,6")]
@@ -48,53 +50,47 @@ struct Cli {
     self_update: bool,
 }
 
-pub async fn start_cli(){
+pub async fn start_cli() {
     let args = Cli::parse();
 
     if args.debug {
-        logger::init(4);
+        logger::init(LevelFilter::Debug);
     } else {
-        logger::init(3);
+        logger::init(LevelFilter::Info);
     }
 
     if args.self_update {
-        updater::self_update();
-        return
+        match updater::self_update() {
+            Ok(_) => return,
+            Err(e) => error_exit(&format!("Failed to update the cli: {}", e)),
+        }
     }
 
     if args.reset_keyring_arome {
-        match keyring::delete_secret(g2s::AROME_ID) {
+        match keyring::delete_secret(&args.model) {
             Ok(_) => return,
             Err(e) => error_exit(&format!("Failed to reset arome keyring value: {}", e)),
         }
     }
 
     let outdir = Path::new(&args.outdir);
-    if ! outdir.is_dir() {
+    if !outdir.is_dir() {
         error_exit("--outdir must be an existing directory")
     }
 
-    let latitudes = parse_coords(&args.lat).unwrap_or_else(|e| {
-        error_exit(&format!("Failed to parse latitudes: {}", e));
-    });
-    let longitudes = parse_coords(&args.lon).unwrap_or_else(|e| {
-        error_exit(&format!("Failed to parse longitudes: {}", e));
-    });
+    let latitudes = match parse_coords(&args.lat) {
+        Ok(l) => l,
+        Err(e) => error_exit(&format!("Failed to parse latitudes: {}", e)),
+    };
+    let longitudes = match parse_coords(&args.lon) {
+        Ok(l) => l,
+        Err(e) => error_exit(&format!("Failed to parse longitudes: {}", e)),
+    };
 
-    let mut secret = String::new();
-    if args.model.to_string().starts_with("arome") {
-        match keyring::get_secret(g2s::AROME_ID) {
-            Ok(s) => secret = s,
-            Err(e) => {
-                error!("{}", e);
-                let mut msg = String::from("No password storing solution available, install");
-                msg.push_str(" one or use the '");
-                msg.push_str(g2s::AROME_ID);
-                msg.push_str("' environement variable");
-                error_exit(&msg);
-            }
-        }
-    }
+    let secret = match keyring::get_secret(&args.model) {
+        Ok(s) => s,
+        Err(e) => error_exit(&e.to_string()),
+    };
 
     let grib = g2s::Grib {
         model: args.model,
@@ -107,19 +103,17 @@ pub async fn start_cli(){
         components: args.components,
         content: Vec::new(),
         run: String::new(),
-        secret: secret,
+        secret,
     };
-    debug!("Grib generated is \n {:?}", grib);
+    debug!("Grib generated is: {:?}", grib);
 
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-    let handle = tokio::spawn(async move {
-        g2s::download_grib(grib, tx).await
-    });
+    let (tx, mut rx) = unbounded_channel();
+    let handle = spawn(async move { g2s::download_grib(grib, tx).await });
 
     let pb = ProgressBar::new(100);
     while let Some(event) = rx.recv().await {
         match event {
-            g2s::DownloadEvent::Started {total} => pb.set_length(total as u64),
+            g2s::DownloadEvent::Started { total } => pb.set_length(total as u64),
             g2s::DownloadEvent::FinishedOne => pb.inc(1),
             g2s::DownloadEvent::FinishedAll => pb.finish(),
         }
@@ -129,20 +123,19 @@ pub async fn start_cli(){
     match handle.await {
         Ok(handle_result) => match handle_result {
             Ok(grib_res) => grib = grib_res,
-            Err(e) => error_exit(&format!("Failed to get the grib: {}", e)),
-        }
+            Err(e) => error_exit(&format!("Failed to download the grib: {}", e)),
+        },
         Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
     };
 
-    let filename = format!(
-        "{}_{}_{}.grib2",
-        grib.model.to_string(),
-        grib.run,
-        grib.step,
-    );
-    match fs::write(outdir.join(filename), grib.content) {
-        Ok(_) => {info!("Done")},
-        Err(e) => {error!("Failed to write the grib file: {}", e)},
+    let filename = format!("{}_{}_{}.grib2", grib.model, grib.run, grib.step,);
+    match fs::write(outdir.join(&filename), grib.content) {
+        Ok(_) => {
+            info!("Successfully downloaded {}", filename)
+        }
+        Err(e) => {
+            error!("Failed to write the grib file: {}", e)
+        }
     }
 }
 
@@ -164,11 +157,10 @@ fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
             Ok(nb) => result.push(nb),
             Err(_) => {
                 let mut msg = String::from("Each --lat and --lon must be valid numbers.");
-                msg.push_str("Ex: --lat 5.5,6.3");
+                msg.push_str(" Ex: --lat 5.5,6.3");
                 return Err(g2s::GribError::InvalidConf(msg));
             }
         }
     }
     Ok(result)
 }
-

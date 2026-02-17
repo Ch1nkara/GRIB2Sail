@@ -2,10 +2,5 @@ mod core;
 mod meteofrance;
 
 pub use core::{
-    download_grib,
-    Grib, Model, Step, Component,
-    ReqwestData,
-    DownloadEvent,
-    GribError
+    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step, download_grib,
 };
-pub use meteofrance::AROME_ID;

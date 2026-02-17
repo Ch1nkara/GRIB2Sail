@@ -1,9 +1,15 @@
 use clap::ValueEnum;
+use keyring::Error as KeyringError;
+use regex::Error as RegError;
+use reqwest::{
+    Client, Error as ReqError,
+    header::{HeaderMap, InvalidHeaderValue},
+};
+use self_update::errors::Error as SelfUpdateError;
+use std::io::Error as IoError;
 use strum_macros::Display;
-use reqwest::{Client, header::{HeaderMap, InvalidHeaderValue}};
-use tokio::sync::mpsc::UnboundedSender;
 use thiserror::Error;
-use std::io::Error;
+use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Clone, Debug)]
 pub struct Grib {
@@ -46,20 +52,19 @@ pub enum Step {
 }
 
 #[derive(Clone, ValueEnum, Debug)]
+#[clap(rename_all = "kebab-case")]
 pub enum Component {
     Wind,
     WindGust,
     Pressure,
-    CloudCover
+    CloudCover,
 }
 
 #[derive(Debug, Clone)]
 pub enum DownloadEvent {
-    Started {
-        total: usize,
-    },
+    Started { total: usize },
     FinishedOne,
-    FinishedAll
+    FinishedAll,
 }
 
 #[derive(Debug, Clone)]
@@ -73,7 +78,7 @@ pub struct ReqwestData {
 #[derive(Debug, Error)]
 pub enum GribError {
     #[error("Network error: {0}")]
-    Reqwest(#[from] reqwest::Error),
+    Reqwest(#[from] ReqError),
 
     #[error("Invalid header value")]
     InvalidHeaderValue(#[from] InvalidHeaderValue),
@@ -82,12 +87,17 @@ pub enum GribError {
     InvalidConf(String),
 
     #[error("IO error: {0}")]
-    Io(#[from] Error),
+    Io(#[from] IoError),
 
     #[error("Keyring error: {0}")]
-    Keyring(#[from] keyring::Error),
+    Keyring(#[from] KeyringError),
+
+    #[error("Self-Update error: {0}")]
+    SelfUpdate(#[from] SelfUpdateError),
+
+    #[error("Regex error: {0}")]
+    Regex(#[from] RegError),
 
     #[error("Error: {0}")]
     Generic(String),
 }
-

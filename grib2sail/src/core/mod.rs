@@ -1,39 +1,42 @@
 mod config;
 
-pub use config::{Grib, Model, Step, Component, DownloadEvent, ReqwestData, GribError};
+pub use config::{Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step};
 
-use futures::{stream, StreamExt};
+use crate::meteofrance;
+use futures::{StreamExt, stream};
 use reqwest::{Client, header::HeaderMap};
 use tokio::sync::mpsc::UnboundedSender;
-use crate::meteofrance;
 
-pub async fn download_grib(mut grib: Grib, events: UnboundedSender<DownloadEvent>)
--> Result<Grib, GribError> {
+pub async fn download_grib(
+    mut grib: Grib,
+    events: UnboundedSender<DownloadEvent>,
+) -> Result<Grib, GribError> {
     let client = Client::new();
 
     let request = ReqwestData {
-        client: client,
-        events: events,
+        client,
+        events,
         headers: HeaderMap::new(),
         urls: Vec::new(),
     };
 
     if grib.model.to_string().starts_with("arome") {
-         grib = meteofrance::download_arome_grib(grib, request).await?;
+        grib = meteofrance::download_arome_grib(grib, request).await?;
     } else {
-        return Err(GribError::InvalidConf(format!("Unexpected model: {}", grib.model)));
+        let msg = format!("Unexpected model: {}", grib.model);
+        return Err(GribError::InvalidConf(msg));
     }
 
     Ok(grib)
 }
 
-pub async fn fetch_data(request: ReqwestData)
--> Result<Vec<u8>, GribError> {
+pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
     let results = stream::iter(request.urls.clone().into_iter().enumerate())
         .map(|(idx, url)| {
             let request0 = request.clone();
             async move {
-                let resp = request0.client
+                let resp = request0
+                    .client
                     .get(&url)
                     .headers(request0.headers)
                     .send()
@@ -48,7 +51,7 @@ pub async fn fetch_data(request: ReqwestData)
         })
         .buffer_unordered(5) // allow up to 5 parallel downloads
         .collect::<Vec<_>>()
-       .await;
+        .await;
 
     // Turn Vec<Result<(idx, data)>> into Result<Vec<(idx, data)>>
     let mut parts: Vec<(usize, Vec<u8>)> = results.into_iter().collect::<Result<_, _>>()?;
@@ -58,8 +61,9 @@ pub async fn fetch_data(request: ReqwestData)
 
     // Concatenate
     let mut ordered = Vec::new();
-    for (_, mut data) in parts { ordered.append(&mut data) }
+    for (_, mut data) in parts {
+        ordered.append(&mut data)
+    }
 
     Ok(ordered)
 }
-
