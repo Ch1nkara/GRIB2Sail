@@ -1,6 +1,6 @@
 use clap::ValueEnum;
 use strum_macros::Display;
-use reqwest::{Client, header::HeaderMap};
+use reqwest::{Client, header::{HeaderMap, InvalidHeaderValue}};
 use tokio::sync::mpsc::UnboundedSender;
 use thiserror::Error;
 use std::io::Error;
@@ -74,6 +74,9 @@ pub struct ReqwestData {
 pub enum GribError {
     #[error("Network error: {0}")]
     Reqwest(#[from] reqwest::Error),
+
+    #[error("Invalid header value")]
+    InvalidHeaderValue(#[from] InvalidHeaderValue),
 
     #[error("Invalid Configuration: {0}")]
     InvalidConf(String),

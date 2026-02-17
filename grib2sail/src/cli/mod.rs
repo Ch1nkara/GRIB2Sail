@@ -133,7 +133,6 @@ pub async fn start_cli(){
         }
         Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
     };
-    debug!("grib is {:?}", grib);
 
     let filename = format!(
         "{}_{}_{}.grib2",

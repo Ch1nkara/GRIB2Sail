@@ -6,21 +6,23 @@ use token::get_token;
 use crate::core::{fetch_data, Grib, GribError, DownloadEvent, ReqwestData};
 
 use log::{debug, info};
-use reqwest::header::{HeaderValue, CONTENT_TYPE};
+use reqwest::header::{HeaderValue, AUTHORIZATION};
 use regex::Regex;
 
 pub async fn download_arome_grib(mut grib: Grib, mut request: ReqwestData)
 -> Result<Grib, GribError> {
     let token = get_token(grib.secret.clone(), request.clone()).await?;
+    let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
+    request.headers.insert(AUTHORIZATION, bearer_header);
 
-    let capa_urls = config::get_urls(config::UrlParams {
+    request.urls = config::get_urls(config::UrlParams {
         grib: grib.clone(),
         url_type: config::UrlType::GetCapabilities,
         run: String::new(),
     });
     let capacity = request.client
-        .get(&capa_urls[0])
-        .bearer_auth(token)
+        .get(&request.urls[0])
+        .headers(request.headers.clone())
         .send()
         .await?
         .error_for_status()?;
@@ -28,29 +30,43 @@ pub async fn download_arome_grib(mut grib: Grib, mut request: ReqwestData)
     let body = capacity.text().await?;
     let lines: Vec<&str> = body.lines().filter(|line| line.contains(config::WIND_V)).collect();
     let last_two = &lines[lines.len().saturating_sub(2)..];
-    debug!("last_two lines are: {:?}", last_two);
     let last2run = vec![
         extract_date(last_two[1])?,
         extract_date(last_two[0])?,
     ];
     debug!("last2run: {:?}", last2run);
 
-    // TODO continue from here
-    let url_params = config::UrlParams {
+    let mut run = last2run[0].clone();
+    request.urls = config::get_urls(config::UrlParams {
         grib: grib.clone(),
         url_type: config::UrlType::GetCoverage,
-        run: "FAKERUN".to_string(),
-    };
-    let dummy_urls = config::get_urls(url_params);
-    debug!("Urls generated are: {:?}", dummy_urls);
+        run: run.clone(),
+    });
+    //debug!("Urls generated are: {:?}", layer_urls);
 
-    request.headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    request.urls = dummy_urls;
+    // If the last run does not have all the required layers yet,
+    // fall back to the previous one
+    if request.client.get(&request.urls[request.urls.len() - 1])
+        .headers(request.headers.clone())
+        .send()
+        .await?
+        .error_for_status()
+        .is_err()
+    {
+        run = last2run[0].clone();
+        request.urls = config::get_urls(config::UrlParams {
+            grib: grib.clone(),
+            url_type: config::UrlType::GetCoverage,
+            run: run.clone(),
+        });
+    }
 
     let total = request.urls.len();
+    debug!("There are {} layers to download", total);
 
     let _ = request.events.send(DownloadEvent::Started {total});
     grib.content = fetch_data(request.clone()).await?;
+    grib.run = run;
 
     let _ = request.events.send(DownloadEvent::FinishedAll);
     Ok(grib)
