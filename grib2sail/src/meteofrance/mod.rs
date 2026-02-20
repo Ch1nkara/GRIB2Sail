@@ -5,9 +5,10 @@ use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
 use config::{UrlType, get_urls};
 use token::get_token;
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use regex::Regex;
 use reqwest::header::{AUTHORIZATION, HeaderValue};
+use std::{thread::sleep, time::Duration};
 
 pub async fn download_arome_grib(
     mut grib: Grib,
@@ -16,6 +17,11 @@ pub async fn download_arome_grib(
     let token = get_token(&grib.secret, &request).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     request.headers.insert(AUTHORIZATION, bearer_header);
+
+    if grib.days > 2 {
+        warn!("Arome forecast a limited to 2 days max");
+        grib.days = 2;
+    }
 
     info!("Finding the latest available forecast");
     request.urls = get_urls(&grib, UrlType::GetCapabilities, "");
@@ -62,9 +68,28 @@ pub async fn download_arome_grib(
     let total = request.urls.len();
     let events = request.events.clone();
 
-    let _ = events.send(DownloadEvent::Started { total });
-    grib.content = fetch_data(request).await?;
     grib.run = run.to_string();
+
+    let _ = events.send(DownloadEvent::Started { total });
+    if total < 100 {
+        grib.content = fetch_data(request).await?;
+    } else {
+        let mut msg = String::from("The requested grib has ");
+        msg.push_str(&total.to_string());
+        msg.push_str(" layers, but MeteoFrance servers limit requests to 100");
+        msg.push_str(" per minutes. This program will sleep 1 minute every");
+        msg.push_str(" 100 layers until the complete grib file is downloaded.");
+        msg.push_str(" You might want to consider reducing the number of");
+        msg.push_str(" layers by increasing the step or reducing the number");
+        msg.push_str(" of components");
+        warn!("{}", msg);
+        for chunk in request.urls.chunks(100) {
+            let mut req = request.clone();
+            req.urls = chunk.to_vec();
+            grib.content.append(&mut fetch_data(req).await?);
+            sleep(Duration::from_mins(1));
+        }
+    }
 
     let _ = events.send(DownloadEvent::FinishedAll);
     Ok(grib)
