@@ -12,8 +12,13 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
     let mut url = String::from("https://public-api.meteofrance.fr/public/arome/1.0/wcs/");
     url.push_str("MF-NWP-HIGHRES-AROME-");
     match grib.model {
-        Model::Arome => url.push_str("0025-FRANCE"),
+        Model::Arome => url.push_str("001-FRANCE"),
+        Model::Arome0025 => url.push_str("0025-FRANCE"),
         Model::AromeAntille => url.push_str("OM-0025-ANTIL"),
+        Model::AromeGuyane => url.push_str("OM-0025-GUYANE"),
+        Model::AromeIndien => url.push_str("OM-0025-INDIEN"),
+        Model::AromeNcaledonie => url.push_str("OM-0025-NCALED"),
+        Model::AromePolynesie => url.push_str("OM-0025-POLYN"),
     }
     url.push_str("-WCS/");
     match url_type {

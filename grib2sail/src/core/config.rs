@@ -31,7 +31,12 @@ pub struct Grib {
 #[strum(serialize_all = "kebab-case")]
 pub enum Model {
     Arome,
+    Arome0025,
     AromeAntille,
+    AromeGuyane,
+    AromeIndien,
+    AromeNcaledonie,
+    AromePolynesie,
 }
 
 #[derive(Copy, Clone, ValueEnum, Debug, Display)]
