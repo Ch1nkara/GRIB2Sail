@@ -27,7 +27,7 @@ struct Cli {
         long, short,
         value_parser = clap::value_parser!(g2s::Component),
         value_delimiter = ',',
-        default_value = "wind")
+        default_value = "wind,wind-gust")
     ]
     components: Vec<g2s::Component>,
 
