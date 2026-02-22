@@ -1,3 +1,27 @@
+## [0.5.0-alpha.7] - 2026-02-22
+
+### 🚀 Features
+
+- Added dummy meteofrance module and async
+- Imporved downloader but not by much
+- Add GribError and added stuff meteofrance
+- Keyring in cli and more
+- Added meteofrance config and token
+- Working arome token getter and latestrun
+- Working simple arome dl
+- Added all arome models
+- Handle more than 100 arome layers
+- Added model gfs and lint via rustfmt
+
+### 💼 Other
+
+- Rename utils submodule core
+
+### 🚜 Refactor
+
+- Improve module inbetween calls
+- Simplify internal modules organisation
+- Polishing and linting with clippy
 ## [0.5.0-alpha.6] - 2026-02-09
 
 ### 🚀 Features
