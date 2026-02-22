@@ -15,7 +15,10 @@ struct TokenResponse {
     //expires_in: usize,
 }
 
-pub async fn get_token(secret: &String, request: &ReqwestData) -> Result<String, GribError> {
+pub async fn get_token(
+    secret: &String,
+    request: &ReqwestData,
+) -> Result<String, GribError> {
     info!("Authenticating to MeteoFrance");
 
     let url_token = config::TOKEN_URL;

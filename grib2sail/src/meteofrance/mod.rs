@@ -24,9 +24,9 @@ pub async fn download_arome_grib(
     }
 
     info!("Finding the latest available forecast");
-    request.urls = get_urls(&grib, UrlType::GetCapabilities, "");
-    // List the forecast available, filter the wind ones and extract
-    // the date from the last two lines
+    request.urls = get_urls(&grib, UrlType::CheckAvailability, "");
+    // List the forecasts availables, filter the wind ones and extract
+    // the last 2 run dates from the last two lines
     let forecast_runs_available = request
         .client
         .get(&request.urls[0])
@@ -46,7 +46,7 @@ pub async fn download_arome_grib(
     debug!("last2run: {:?}", last2run);
 
     let mut run = &last2run[0];
-    request.urls = get_urls(&grib, UrlType::GetCoverage, run);
+    request.urls = get_urls(&grib, UrlType::GribData, run);
     //debug!("Urls generated are: {:?}", layer_urls);
 
     // If the last run does not have all the required layers yet,
@@ -61,7 +61,7 @@ pub async fn download_arome_grib(
         .is_err()
     {
         run = &last2run[1];
-        request.urls = get_urls(&grib, UrlType::GetCoverage, run);
+        request.urls = get_urls(&grib, UrlType::GribData, run);
     }
 
     info!("Downloading the grib layers");
@@ -96,12 +96,16 @@ pub async fn download_arome_grib(
 }
 
 fn extract_date(line: &str) -> Result<String, GribError> {
-    let re = Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}Z")?;
-    match re.find(line) {
-        Some(m) => Ok(m.as_str().to_string()),
+    let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})T(\d{2})\.\d{2}\.\d{2}Z")?;
+    match re.captures(line) {
+        Some(caps) => {
+            let formatted =
+                format!("{}{}{}-{}z", &caps[1], &caps[2], &caps[3], &caps[4],);
+            Ok(formatted)
+        }
         None => {
-            let mut msg = String::from("Couldn't find latest forecast");
-            msg.push_str(&format!(" available from: {}", line));
+            let mut msg = String::from("Couldn't find latest available");
+            msg.push_str(&format!(" forecast from: {}", line));
             Err(GribError::Generic(msg))
         }
     }

@@ -31,7 +31,12 @@ struct Cli {
     ]
     components: Vec<g2s::Component>,
 
-    #[arg(long, short = 'L', allow_hyphen_values = true, default_value = "44,45")]
+    #[arg(
+        long,
+        short = 'L',
+        allow_hyphen_values = true,
+        default_value = "42,43"
+    )]
     lat: String,
 
     #[arg(long, short, allow_hyphen_values = true, default_value = "5,6")]
@@ -69,7 +74,10 @@ pub async fn start_cli() {
     if args.reset_keyring_arome {
         match keyring::delete_secret(&args.model) {
             Ok(_) => return,
-            Err(e) => error_exit(&format!("Failed to reset arome keyring value: {}", e)),
+            Err(e) => error_exit(&format!(
+                "Failed to reset arome keyring value: {}",
+                e
+            )),
         }
     }
 
@@ -78,11 +86,11 @@ pub async fn start_cli() {
         error_exit("--outdir must be an existing directory")
     }
 
-    let latitudes = match parse_coords(&args.lat) {
+    let lat = match parse_coords(&args.lat) {
         Ok(l) => l,
         Err(e) => error_exit(&format!("Failed to parse latitudes: {}", e)),
     };
-    let longitudes = match parse_coords(&args.lon) {
+    let lon = match parse_coords(&args.lon) {
         Ok(l) => l,
         Err(e) => error_exit(&format!("Failed to parse longitudes: {}", e)),
     };
@@ -96,10 +104,10 @@ pub async fn start_cli() {
         model: args.model,
         step: args.step,
         days: args.days,
-        latitude_min: latitudes.iter().cloned().fold(f64::INFINITY, f64::min),
-        latitude_max: latitudes.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
-        longitude_min: longitudes.iter().cloned().fold(f64::INFINITY, f64::min),
-        longitude_max: longitudes.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+        latitude_min: lat.iter().cloned().fold(f64::INFINITY, f64::min),
+        latitude_max: lat.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+        longitude_min: lon.iter().cloned().fold(f64::INFINITY, f64::min),
+        longitude_max: lon.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         components: args.components,
         content: Vec::new(),
         run: String::new(),
@@ -113,7 +121,9 @@ pub async fn start_cli() {
     let pb = ProgressBar::new(100);
     while let Some(event) = rx.recv().await {
         match event {
-            g2s::DownloadEvent::Started { total } => pb.set_length(total as u64),
+            g2s::DownloadEvent::Started { total } => {
+                pb.set_length(total as u64)
+            }
             g2s::DownloadEvent::FinishedOne => pb.inc(1),
             g2s::DownloadEvent::FinishedAll => pb.finish(),
         }
@@ -123,7 +133,9 @@ pub async fn start_cli() {
     match handle.await {
         Ok(handle_result) => match handle_result {
             Ok(grib_res) => grib = grib_res,
-            Err(e) => error_exit(&format!("Failed to download the grib: {}", e)),
+            Err(e) => {
+                error_exit(&format!("Failed to download the grib: {}", e))
+            }
         },
         Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
     };
@@ -147,8 +159,9 @@ fn error_exit(msg: &str) -> ! {
 fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
     let coord: Vec<&str> = coord_str.split(',').collect();
     if coord.len() != 2 {
-        let mut msg = String::from("Each --lat and --lon must contain exactly two coordinates");
-        msg.push_str(" separated by a comma. Ex: --lat 5.55,6.05");
+        let mut msg = String::from("Each --lat and --lon must contain");
+        msg.push_str(" exactly two coordinates separated by a comma.");
+        msg.push_str(" Ex: --lat 5.55,6.05");
         return Err(g2s::GribError::InvalidConf(msg));
     }
     let mut result = Vec::with_capacity(2);
@@ -156,8 +169,8 @@ fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
         match c.trim().parse::<f64>() {
             Ok(nb) => result.push(nb),
             Err(_) => {
-                let mut msg = String::from("Each --lat and --lon must be valid numbers.");
-                msg.push_str(" Ex: --lat 5.5,6.3");
+                let mut msg = String::from("Each --lat and --lon must be");
+                msg.push_str(" valid numbers. Ex: --lat 5.5,6.3");
                 return Err(g2s::GribError::InvalidConf(msg));
             }
         }

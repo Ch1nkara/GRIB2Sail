@@ -26,7 +26,7 @@ pub struct Grib {
     pub secret: String,
 }
 
-#[derive(Clone, ValueEnum, Debug, Display)]
+#[derive(Clone, ValueEnum, Debug, Display, PartialEq)]
 #[clap(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Model {
@@ -37,6 +37,7 @@ pub enum Model {
     AromeIndien,
     AromeNcaledonie,
     AromePolynesie,
+    Gfs,
 }
 
 #[derive(Copy, Clone, ValueEnum, Debug, Display)]

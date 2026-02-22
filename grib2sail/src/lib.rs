@@ -1,6 +1,8 @@
 mod core;
 mod meteofrance;
+mod noaa;
 
 pub use core::{
-    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step, download_grib,
+    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step,
+    download_grib,
 };

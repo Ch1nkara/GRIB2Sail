@@ -1,8 +1,12 @@
 mod config;
 
-pub use config::{Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step};
+pub use config::{
+    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step,
+};
 
 use crate::meteofrance;
+use crate::noaa;
+
 use futures::{StreamExt, stream};
 use reqwest::{Client, header::HeaderMap};
 use tokio::sync::mpsc::UnboundedSender;
@@ -22,6 +26,8 @@ pub async fn download_grib(
 
     if grib.model.to_string().starts_with("arome") {
         grib = meteofrance::download_arome_grib(grib, request).await?;
+    } else if grib.model == Model::Gfs {
+        grib = noaa::download_gfs_grib(grib, request).await?;
     } else {
         let msg = format!("Unexpected model: {}", grib.model);
         return Err(GribError::InvalidConf(msg));
@@ -54,7 +60,8 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
         .await;
 
     // Turn Vec<Result<(idx, data)>> into Result<Vec<(idx, data)>>
-    let mut parts: Vec<(usize, Vec<u8>)> = results.into_iter().collect::<Result<_, _>>()?;
+    let mut parts: Vec<(usize, Vec<u8>)> =
+        results.into_iter().collect::<Result<_, _>>()?;
 
     // Restore original order
     parts.sort_by_key(|(idx, _)| *idx);

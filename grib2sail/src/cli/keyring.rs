@@ -12,8 +12,8 @@ pub fn get_secret(model: &g2s::Model) -> Result<String, g2s::GribError> {
             Ok(s) => Ok(s),
             Err(e) => {
                 error!("{}", e);
-                let mut msg = String::from("No password storing solution available, install");
-                msg.push_str(" one or use the '");
+                let mut msg = String::from("No password storing solution");
+                msg.push_str(" available, install one or use the '");
                 msg.push_str(AROME_ID);
                 msg.push_str("' environement variable");
                 Err(g2s::GribError::Generic(msg))
@@ -32,9 +32,10 @@ fn get_password(id: &str) -> Result<String, g2s::GribError> {
     match entry.get_password() {
         Ok(secret) => Ok(secret),
         Err(Error::NoEntry) => {
-            let mut msg = String::from("For the first use only, you must create and provide");
-            msg.push_str(" a free application ID from meteofrance.fr, it will be saved");
-            msg.push_str(" locally. See documentation for exact procedure.");
+            let mut msg = String::from("For the first use only, you must");
+            msg.push_str(" create and provide a free application ID from");
+            msg.push_str(" meteofrance.fr, it will be saved locally.");
+            msg.push_str(" See documentation for exact procedure.");
             warn!("{}", msg);
 
             let mut secret = String::new();
