@@ -68,7 +68,14 @@ pub async fn download_arome_grib(
     let total = request.urls.len();
     let events = request.events.clone();
 
-    grib.run = run.to_string();
+    // Change fomatting from 1970-01-01T00.00.00Z to 19700101-00z
+    grib.run = run
+        .replace("-", "")
+        .replace("T", "-")
+        .chars()
+        .take(11)
+        .collect::<String>();
+    grib.run.push('z');
 
     let _ = events.send(DownloadEvent::Started { total });
     if total < 100 {
@@ -96,16 +103,12 @@ pub async fn download_arome_grib(
 }
 
 fn extract_date(line: &str) -> Result<String, GribError> {
-    let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})T(\d{2})\.\d{2}\.\d{2}Z")?;
-    match re.captures(line) {
-        Some(caps) => {
-            let formatted =
-                format!("{}{}{}-{}z", &caps[1], &caps[2], &caps[3], &caps[4],);
-            Ok(formatted)
-        }
+    let re = Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}Z")?;
+    match re.find(line) {
+        Some(m) => Ok(m.as_str().to_string()),
         None => {
-            let mut msg = String::from("Couldn't find latest available");
-            msg.push_str(&format!(" forecast from: {}", line));
+            let mut msg = String::from("Couldn't find latest forecast");
+            msg.push_str(&format!(" available from: {}", line));
             Err(GribError::Generic(msg))
         }
     }
