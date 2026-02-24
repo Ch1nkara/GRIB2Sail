@@ -1,3 +1,8 @@
+## [0.5.0] - 2026-02-24
+
+### 🚜 Refactor
+
+- Migrate the code to Rust
 ## [0.4.0] - 2026-02-05
 
 - Fallback 1 run if the last one is incomplete
