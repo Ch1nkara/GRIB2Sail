@@ -94,6 +94,7 @@ pub async fn download_arome_grib(
             let mut req = request.clone();
             req.urls = chunk.to_vec();
             grib.content.append(&mut fetch_data(req).await?);
+            info!("Sleeping 1 minute...");
             sleep(Duration::from_mins(1));
         }
     }

@@ -69,6 +69,9 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     urls.push(windv_url);
                 }
                 Component::WindGust => {
+                    if time == 0 {
+                        continue;
+                    }
                     temp_url.push_str("&coverageid=");
                     temp_url.push_str("WIND_SPEED_GUST__");
                     temp_url.push_str("SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND___");
@@ -83,6 +86,9 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     urls.push(temp_url);
                 }
                 Component::CloudCover => {
+                    if time == 0 {
+                        continue;
+                    }
                     temp_url.push_str("&coverageid=");
                     temp_url.push_str("TOTAL_CLOUD_COVER__");
                     temp_url.push_str("GROUND_OR_WATER_SURFACE___");

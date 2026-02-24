@@ -10,9 +10,9 @@ pub fn init(filter_level: LevelFilter) {
             let ts = Local::now().format("%Y-%m-%d %H:%M:%S");
             let level = match record.level() {
                 Level::Error => record.level().to_string().red(),
-                Level::Warn => record.level().to_string().magenta(),
+                Level::Warn => record.level().to_string().yellow(),
                 Level::Info => record.level().to_string().green(),
-                Level::Debug => record.level().to_string().yellow(),
+                Level::Debug => record.level().to_string().magenta(),
                 Level::Trace => record.level().to_string().normal(),
             };
             writeln!(buf, "{} [{}] {}", ts, level, record.args())
