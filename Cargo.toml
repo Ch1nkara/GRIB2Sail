@@ -1,0 +1,29 @@
+[workspace]
+members = ["grib2sail"]
+resolver = "3"
+
+[workspace.metadata.release]
+allow-branch = ["main", "dev"]
+sign-commit = false
+sign-tag = false
+push = true
+tag = true
+tag-name = "v{{version}}"
+pre-release-commit-message = "Release: v{{version}}"
+pre-release-hook = [
+    "git",
+    "cliff",
+    "--prepend",
+    "../CHANGELOG.md",
+    "--unreleased",
+    "--tag",
+    "{{version}}"
+]
+
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+
