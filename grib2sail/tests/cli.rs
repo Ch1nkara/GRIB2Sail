@@ -19,6 +19,69 @@ fn arome() {
     cli_call(command);
 }
 
+#[test]
+fn arome_polynesie() {
+    let mut command = vec!["-m", "arome-polynesie", "-s", "12h", "-d", "1"];
+    command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
+    command.extend(&["-L", "-17,-16", "-l", "-150,-149"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn arome_guyane() {
+    let mut command = vec!["-m", "arome-guyane", "-s", "6h", "-d", "1"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "5,6", "-l", "-53,-52"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn arome_antille() {
+    let mut command = vec!["-m", "arome-antille", "-s", "3h", "-d", "1"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "16.33,17", "-l", "-62,-61.33"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn arome_ncaledonie() {
+    let mut command = vec!["-m", "arome-ncaledonie", "-s", "1h", "-d", "1"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "-23,-22", "-l", "166,167"]);
+    command.extend(&["-o", ".."]);
+    cli_call(command);
+}
+
+#[test]
+fn arome_indien() {
+    let mut command = vec!["-m", "arome-indien", "-s", "12h", "-d", "2"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "-21,-20", "-l", "55,56"]);
+    command.extend(&["-o", "/tmp"]);
+    cli_call(command);
+}
+
+#[test]
+fn arome0025() {
+    let mut command = vec!["-m", "arome0025", "-s", "12h", "-d", "12"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "43,44", "-l", "5,6"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn gfs_2() {
+    let mut command = vec!["-m", "gfs", "-s", "1h", "-d", "33"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "-1.18,1.33", "-l", "5.25,6"]);
+    command.extend(&["-o", "/tmp"]);
+    cli_call(command);
+}
+
 fn cli_call(args: Vec<&str>) {
     let output = Command::new(env!("CARGO_BIN_EXE_grib2sail-cli"))
         .args(args.clone())
