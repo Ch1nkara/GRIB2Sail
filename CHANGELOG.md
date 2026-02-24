@@ -1,0 +1,40 @@
+## [0.4.0] - 2026-02-05
+
+- Fallback 1 run if the last one is incomplete
+- Remove unecessary arome error handling
+- Add full module tests
+- Allow user to choose output directory
+- Arome error bypass when missing layer
+- Optimize test duration
+
+## [0.3.1] - 2026-02-05
+
+- Fix arome outfile naming pattern
+- Error in GFS when when step=1h and days>5
+- Unavailable layers in GFS latest run
+
+## [0.3.0] - 2026-02-04
+
+- Add the others arome models
+- Indentation issues and default value
+- Improve function write_file reusability
+- Add --days option
+- Add GFS model resolution 0025
+
+## [0.2.1] - 2026-02-01
+
+- Add a logo to the project
+- Create a github release via Github actions
+
+## [0.2.0] - 2026-01-30
+
+- Fix typo in README
+- Typo in .gitignore
+- Improve logged information
+- Improve AROME download speed
+- Separate arome logic from common logic
+- Gracefully handle arome requests limitations
+
+## [0.1.0] - 2026-01-27
+
+- Arome antille basic download
