@@ -1,3 +1,8 @@
+## [0.5.1] - 2026-02-25
+
+### 🐛 Bug Fixes
+
+- Self-update compression and path
 ## [0.5.0] - 2026-02-24
 
 ### 🚜 Refactor
