@@ -14,9 +14,9 @@ pub fn self_update() -> Result<(), g2s::GribError> {
     github::Update::configure()
         .repo_owner("Ch1nkara")
         .repo_name("GRIB2Sail")
-        .bin_name(&bin_name)
+        .bin_name(bin_name)
         .bin_path_in_archive(&bin_path)
-        .target(&target)
+        .target(target)
         .show_download_progress(true)
         .current_version(env!("CARGO_PKG_VERSION"))
         .build()?
