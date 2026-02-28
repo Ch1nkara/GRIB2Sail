@@ -23,7 +23,7 @@ pub async fn download_gfs_grib(
     for url in &request.urls {
         let resp = request
             .client
-            .get(url)
+            .head(url)
             .headers(request.headers.clone())
             .send()
             .await?;
