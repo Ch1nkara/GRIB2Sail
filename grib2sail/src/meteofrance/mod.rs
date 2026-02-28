@@ -90,12 +90,15 @@ pub async fn download_arome_grib(
         msg.push_str(" layers by increasing the step or reducing the number");
         msg.push_str(" of components");
         warn!("{}", msg);
-        for chunk in request.urls.chunks(100) {
+        let chunks = request.urls.chunks(100).collect::<Vec<_>>();
+        for (i, chunk) in chunks.iter().enumerate() {
             let mut req = request.clone();
             req.urls = chunk.to_vec();
             grib.content.append(&mut fetch_data(req).await?);
-            info!("Sleeping 1 minute...");
-            sleep(Duration::from_mins(1));
+            if i != chunks.len() - 1 {
+                info!("Sleeping 1 minute...");
+                sleep(Duration::from_mins(1));
+            }
         }
     }
 
