@@ -1,5 +1,6 @@
 use clap::ValueEnum;
 use keyring::Error as KeyringError;
+use log::SetLoggerError;
 use regex::Error as RegError;
 use reqwest::{
     Client, Error as ReqError,
@@ -103,6 +104,9 @@ pub enum GribError {
 
     #[error("Regex error: {0}")]
     Regex(#[from] RegError),
+
+    #[error("Logger error: {0}")]
+    SetLoggerError(#[from] SetLoggerError),
 
     #[error("Error: {0}")]
     Generic(String),

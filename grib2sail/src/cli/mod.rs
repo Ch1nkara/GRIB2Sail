@@ -58,10 +58,13 @@ struct Cli {
 pub async fn start_cli() {
     let args = Cli::parse();
 
-    if args.debug {
-        logger::init(LevelFilter::Debug);
+    let res = if args.debug {
+        logger::init(LevelFilter::Debug)
     } else {
-        logger::init(LevelFilter::Info);
+        logger::init(LevelFilter::Info)
+    };
+    if let Err(e) = res {
+        error_exit(&format!("Failed to init logger: {}", e));
     }
 
     if args.self_update {
@@ -119,6 +122,10 @@ pub async fn start_cli() {
     let handle = spawn(async move { g2s::download_grib(grib, tx).await });
 
     let pb = ProgressBar::new(100);
+    if let Err(e) = logger::set_progress_bar(pb.clone()) {
+        error_exit(&format!("Failed to set progress bar: {}", e));
+    }
+
     while let Some(event) = rx.recv().await {
         match event {
             g2s::DownloadEvent::Started { total } => {
@@ -139,6 +146,9 @@ pub async fn start_cli() {
         },
         Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
     };
+    if let Err(e) = logger::clear_progress_bar() {
+        error_exit(&format!("Failed to clear progress bar: {}", e));
+    }
 
     let filename = format!("{}_{}_{}.grib2", grib.model, grib.run, grib.step,);
     match fs::write(outdir.join(&filename), grib.content) {

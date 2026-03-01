@@ -23,6 +23,7 @@ keyring = { version = "3.6.3", features = [
   "apple-native"
 ] }
 log = "0.4.29"
+once_cell = "1.21.3"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = ["json"] }
 self_update = { version = "0.42.0", features = [
