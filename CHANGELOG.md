@@ -1,3 +1,11 @@
+## [0.5.2] - 2026-03-01
+
+### 🐛 Bug Fixes
+
+- Use HEAD instead of GET to find gfs latest
+- Arome sleeping 1 min after finishing dl
+- Unecessary borrows in updater
+- Cli logger messing progress bar
 ## [0.5.1] - 2026-02-25
 
 ### 🐛 Bug Fixes
