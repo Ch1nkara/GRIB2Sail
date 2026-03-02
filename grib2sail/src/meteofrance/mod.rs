@@ -2,7 +2,7 @@ mod config;
 mod token;
 
 use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
-use config::{UrlType, get_urls};
+use config::{UrlType, WIND_V, get_urls};
 use token::get_token;
 
 use log::{debug, info, warn};
@@ -38,7 +38,7 @@ pub async fn download_arome_grib(
         .await?;
     let wind_runs: Vec<&str> = forecast_runs_available
         .lines()
-        .filter(|line| line.contains(config::WIND_V))
+        .filter(|line| line.contains(WIND_V))
         .collect();
     let last_two = &wind_runs[wind_runs.len().saturating_sub(2)..];
 
