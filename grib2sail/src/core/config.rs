@@ -10,7 +10,10 @@ use self_update::errors::Error as SelfUpdateError;
 use std::io::Error as IoError;
 use strum_macros::Display;
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::{
+    sync::{AcquireError, mpsc::UnboundedSender},
+    task::JoinError,
+};
 
 #[derive(Clone, Debug)]
 pub struct Grib {
@@ -86,6 +89,12 @@ pub struct ReqwestData {
 pub enum GribError {
     #[error("Network error: {0}")]
     Reqwest(#[from] ReqError),
+
+    #[error("Join error: {0}")]
+    Join(#[from] JoinError),
+
+    #[error("Acquire error: {0}")]
+    Acquire(#[from] AcquireError),
 
     #[error("Invalid header value")]
     InvalidHeaderValue(#[from] InvalidHeaderValue),

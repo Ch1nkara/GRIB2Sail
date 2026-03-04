@@ -7,9 +7,13 @@ pub use config::{
 use crate::meteofrance;
 use crate::noaa;
 
-use futures::{StreamExt, stream};
+use log::info;
 use reqwest::{Client, header::HeaderMap};
-use tokio::sync::mpsc::UnboundedSender;
+use std::{sync::Arc, time::Duration};
+use tokio::{
+    sync::{Semaphore, mpsc::UnboundedSender},
+    time::sleep,
+};
 
 pub async fn download_grib(
     mut grib: Grib,
@@ -37,40 +41,53 @@ pub async fn download_grib(
 }
 
 pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
-    let results = stream::iter(request.urls.clone().into_iter().enumerate())
-        .map(|(idx, url)| {
-            let request0 = request.clone();
-            async move {
-                let resp = request0
-                    .client
-                    .get(&url)
-                    .headers(request0.headers)
-                    .send()
-                    .await?
-                    .error_for_status()?;
-                let bytes = resp.bytes().await?;
+    let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
+    let mut result = vec![];
 
-                let _ = request0.events.send(DownloadEvent::FinishedOne);
-
-                Ok::<_, GribError>((idx, bytes.to_vec()))
-            }
-        })
-        .buffer_unordered(5) // allow up to 5 parallel downloads
-        .collect::<Vec<_>>()
-        .await;
-
-    // Turn Vec<Result<(idx, data)>> into Result<Vec<(idx, data)>>
-    let mut parts: Vec<(usize, Vec<u8>)> =
-        results.into_iter().collect::<Result<_, _>>()?;
-
-    // Restore original order
-    parts.sort_by_key(|(idx, _)| *idx);
-
-    // Concatenate
-    let mut ordered = Vec::new();
-    for (_, mut data) in parts {
-        ordered.append(&mut data)
+    for (idx, _) in request.urls.iter().enumerate() {
+        let _ = semaphore.clone().acquire_owned().await?;
+        let req = request.clone();
+        let handle = tokio::spawn(get_url(idx, req));
+        result.push(handle.await??);
     }
 
-    Ok(ordered)
+    // Restore original order
+    result.sort_by_key(|(idx, _)| *idx);
+
+    // Concatenate Vec<Vec<u8 into Vec<u8
+    Ok(result.into_iter().flat_map(|(_, data)| data).collect())
+}
+
+async fn get_url(
+    idx: usize,
+    req: ReqwestData,
+) -> Result<(usize, Vec<u8>), GribError> {
+    let mut attempts = 0;
+    let bytes = loop {
+        attempts += 1;
+        if attempts > 1 {
+            info!("Layer {} failed retrying {}/3", idx, attempts);
+            // Backoff before retrying
+            sleep(Duration::from_secs(1)).await;
+        }
+        let resp = match req
+            .client
+            .get(&req.urls[idx])
+            .headers(req.headers.clone())
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(e) if attempts < 3 => continue,
+            Err(e) => return Err(GribError::Reqwest(e)),
+        };
+        let resp = resp.error_for_status()?;
+        match resp.bytes().await {
+            Ok(b) => break b.to_vec(),
+            Err(e) if attempts < 3 => continue,
+            Err(e) => return Err(GribError::Reqwest(e)),
+        }
+    };
+    let _ = req.events.send(DownloadEvent::FinishedOne);
+    Ok((idx, bytes))
 }
