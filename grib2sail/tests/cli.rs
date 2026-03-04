@@ -1,5 +1,4 @@
-use std::fs;
-use std::process::Command;
+use std::{fs, process::Command, thread, time::Duration};
 
 #[test]
 fn gfs_1() {
@@ -83,6 +82,7 @@ fn gfs_2() {
 }
 
 fn cli_call(args: Vec<&str>) {
+    thread::sleep(Duration::from_secs(5));
     let output = Command::new(env!("CARGO_BIN_EXE_grib2sail-cli"))
         .args(args.clone())
         .output()
