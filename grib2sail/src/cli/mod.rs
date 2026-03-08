@@ -5,7 +5,6 @@ mod updater;
 use grib2sail as g2s;
 
 use clap::{ArgAction, Parser};
-use indicatif::ProgressBar;
 use log::{LevelFilter, debug, error, info};
 use std::{fs, path::Path, process};
 use tokio::{spawn, sync::mpsc::unbounded_channel};
@@ -121,18 +120,23 @@ pub async fn start_cli() {
     let (tx, mut rx) = unbounded_channel();
     let handle = spawn(async move { g2s::download_grib(grib, tx).await });
 
-    let pb = ProgressBar::new(100);
-    if let Err(e) = logger::set_progress_bar(pb.clone()) {
-        error_exit(&format!("Failed to set progress bar: {}", e));
-    }
-
     while let Some(event) = rx.recv().await {
         match event {
             g2s::DownloadEvent::Started { total } => {
-                pb.set_length(total as u64)
+                if let Err(e) = logger::set_progress_bar(total) {
+                    error_exit(&format!("Failed to set progress bar: {}", e));
+                }
             }
-            g2s::DownloadEvent::FinishedOne => pb.inc(1),
-            g2s::DownloadEvent::FinishedAll => pb.finish(),
+            g2s::DownloadEvent::FinishedOne => {
+                if let Err(e) = logger::increment_progress_bar(1) {
+                    error_exit(&format!("Failed to inc progress bar: {}", e));
+                }
+            }
+            g2s::DownloadEvent::FinishedAll => {
+                if let Err(e) = logger::clear_progress_bar() {
+                    error_exit(&format!("Failed to clear progress bar: {}", e));
+                }
+            }
         }
     }
 

@@ -64,7 +64,8 @@ fn write_std(msg: String) {
     let _ = writeln!(&mut stdout(), "{}", msg);
 }
 
-pub fn set_progress_bar(pb: ProgressBar) -> Result<(), g2s::GribError> {
+pub fn set_progress_bar(len: usize) -> Result<(), g2s::GribError> {
+    let pb = ProgressBar::new(len as u64);
     let mutex = PROGRESS_BAR.get_or_init(|| Mutex::new(None));
     let mut guard = mutex.lock().map_err(|e| {
         g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
@@ -73,13 +74,28 @@ pub fn set_progress_bar(pb: ProgressBar) -> Result<(), g2s::GribError> {
     Ok(())
 }
 
+pub fn increment_progress_bar(inc: u64) -> Result<(), g2s::GribError> {
+    let mutex = PROGRESS_BAR.get().ok_or_else(|| {
+        g2s::GribError::Generic("progress bar not initialized".to_string())
+    })?;
+    let guard = mutex.lock().map_err(|e| {
+        g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
+    })?;
+    let pb = guard.as_ref().ok_or_else(|| {
+        g2s::GribError::Generic("progress bar inside mutex is None".to_string())
+    })?;
+    pb.inc(inc);
+    Ok(())
+}
+
 pub fn clear_progress_bar() -> Result<(), g2s::GribError> {
-    if let Some(mutex) = PROGRESS_BAR.get() {
-        let mut guard = mutex.lock().map_err(|e| {
-            g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
-        })?;
-        *guard = None;
-    }
+    let mutex = PROGRESS_BAR.get().ok_or_else(|| {
+        g2s::GribError::Generic("progress bar not initialized".to_string())
+    })?;
+    let mut guard = mutex.lock().map_err(|e| {
+        g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
+    })?;
+    *guard = None;
     Ok(())
 }
 
