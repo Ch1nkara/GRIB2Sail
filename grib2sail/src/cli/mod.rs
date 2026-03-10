@@ -13,7 +13,7 @@ use tokio::{spawn, sync::mpsc::unbounded_channel};
 #[command(name = "grib2sail-cli")]
 #[command(about = "A cli for GRIB2Sail", long_about = None, version)]
 struct Cli {
-    #[arg(long, short, value_enum, default_value_t = g2s::Model::Arome)]
+    #[arg(long, short, value_enum, default_value_t = g2s::Model::Gfs025)]
     model: g2s::Model,
 
     #[arg(long, short, value_enum, default_value_t = g2s::Step::H3)]
