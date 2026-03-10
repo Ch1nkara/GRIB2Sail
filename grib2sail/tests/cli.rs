@@ -2,9 +2,27 @@ use std::{fs, process::Command, thread, time::Duration};
 
 #[test]
 fn gfs_1() {
-    let mut command = vec!["-m", "gfs", "-s", "3h", "-d", "5"];
+    let mut command = vec!["-m", "gfs025", "-s", "3h", "-d", "5"];
     command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
     command.extend(&["-L", "-17,-16", "-l", "-150,-149"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn gfs_2() {
+    let mut command = vec!["-m", "gfs050", "-s", "1h", "-d", "33"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "-1.18,1.33", "-l", "5.25,6"]);
+    command.extend(&["-o", "/tmp"]);
+    cli_call(command);
+}
+
+#[test]
+fn gfs_3() {
+    let mut command = vec!["-m", "gfs100", "-s", "6h", "-d", "1"];
+    command.extend(&["-c", "wind-gust"]);
+    command.extend(&["-L", "-1.18,1.33", "-l", "5.25,6"]);
     command.extend(&["-o", "."]);
     cli_call(command);
 }
@@ -69,15 +87,6 @@ fn arome0025() {
     command.extend(&["-c", "wind-gust"]);
     command.extend(&["-L", "43,44", "-l", "5,6"]);
     command.extend(&["-o", "."]);
-    cli_call(command);
-}
-
-#[test]
-fn gfs_2() {
-    let mut command = vec!["-m", "gfs", "-s", "1h", "-d", "33"];
-    command.extend(&["-c", "wind-gust"]);
-    command.extend(&["-L", "-1.18,1.33", "-l", "5.25,6"]);
-    command.extend(&["-o", "/tmp"]);
     cli_call(command);
 }
 

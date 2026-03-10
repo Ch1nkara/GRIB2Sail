@@ -38,15 +38,25 @@ pub struct Grib {
 #[clap(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Model {
+    #[clap(help = "Res 1km, Between 41°N and 51.5°N / -6°W and 10.5°E")]
     Arome,
+    #[clap(help = "Res 2.5km, Between 41°N and 51.5°N / -6°W and 10.5°E")]
     Arome0025,
+    #[clap(help = "Between 10.4°N and 22.45°N / -67.8°W and -52.2°W")]
     AromeAntille,
+    #[clap(help = "Between 1.05°N and 8.95°N / -56.75°W and -46.3°W")]
     AromeGuyane,
+    #[clap(help = "Between -25.9°S and -7.25°S / 32.75°E and 67.6°E")]
     AromeIndien,
+    #[clap(help = "Between -26°S and -13.75°S / 158.5°E and 171.5°E")]
     AromeNcaledonie,
+    #[clap(help = "Between -25.25°S and -12.6°S / -157.5°W and -144.5°W")]
     AromePolynesie,
+    #[clap(help = "Gfs 0,25° - 22km, worldwide")]
     Gfs025,
+    #[clap(help = "Gfs 0,50° - 45km, worldwide")]
     Gfs050,
+    #[clap(help = "Gfs 1,00° - 90km, worldwide")]
     Gfs100,
 }
 
