@@ -1,4 +1,5 @@
 mod core;
+mod iridium;
 mod meteofrance;
 mod noaa;
 

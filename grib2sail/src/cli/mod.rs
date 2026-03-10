@@ -44,6 +44,9 @@ struct Cli {
     #[arg(long, short, default_value = ".")]
     outdir: String,
 
+    #[arg(long, short, action = ArgAction::SetTrue)]
+    iridium: bool,
+
     #[arg(long, action = ArgAction::SetTrue)]
     debug: bool,
 
@@ -111,6 +114,7 @@ pub async fn start_cli() {
         longitude_min: lon.iter().cloned().fold(f64::INFINITY, f64::min),
         longitude_max: lon.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         components: args.components,
+        iridium: args.iridium,
         content: Vec::new(),
         run: String::new(),
         secret,

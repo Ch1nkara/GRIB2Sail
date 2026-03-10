@@ -2,6 +2,11 @@ use crate::core::{Component, Grib};
 
 use chrono::{Duration, Local};
 use log::warn;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+pub static NOAA_HOST: &str = "nomads.ncep.noaa.gov";
+pub static NOAA_SOCKET: SocketAddr =
+    SocketAddr::new(IpAddr::V4(Ipv4Addr::new(23, 223, 194, 197)), 443);
 
 pub enum UrlType {
     CheckAvailability,
@@ -11,7 +16,7 @@ pub enum UrlType {
 pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
     let mut urls = Vec::new();
 
-    let domain = "https://nomads.ncep.noaa.gov/";
+    let domain = format!("https://{}/", NOAA_HOST);
     match url_type {
         UrlType::CheckAvailability => {
             let url = "pub/data/nccf/com/gfs/prod/gfs.";

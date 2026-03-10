@@ -7,7 +7,7 @@ use reqwest::{
     header::{HeaderMap, InvalidHeaderValue},
 };
 use self_update::errors::Error as SelfUpdateError;
-use std::io::Error as IoError;
+use std::{io::Error as IoError, num::ParseIntError};
 use strum_macros::Display;
 use thiserror::Error;
 use tokio::{
@@ -31,6 +31,7 @@ pub struct Grib {
     pub content: Vec<u8>,
     pub run: String,
     pub secret: String,
+    pub iridium: bool,
 }
 
 #[derive(Clone, ValueEnum, Debug, Display, PartialEq)]
@@ -122,6 +123,9 @@ pub enum GribError {
 
     #[error("Logger error: {0}")]
     SetLoggerError(#[from] SetLoggerError),
+
+    #[error("Parse error: {0}")]
+    ParseIntError(#[from] ParseIntError),
 
     #[error("Error: {0}")]
     Generic(String),
