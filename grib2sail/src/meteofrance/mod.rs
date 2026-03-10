@@ -77,7 +77,7 @@ pub async fn download_arome_grib(
         .collect::<String>();
     grib.run.push('z');
 
-    let _ = events.send(DownloadEvent::Started { total });
+    events.send(DownloadEvent::Started { total })?;
     if total < 100 {
         grib.content = fetch_data(request).await?;
     } else {
@@ -102,7 +102,7 @@ pub async fn download_arome_grib(
         }
     }
 
-    let _ = events.send(DownloadEvent::FinishedAll);
+    events.send(DownloadEvent::FinishedAll)?;
     Ok(grib)
 }
 

@@ -49,9 +49,10 @@ pub async fn download_gfs_grib(
 
     grib.run = format!("{}-{}z", date, hour);
 
-    let _ = events.send(DownloadEvent::Started { total });
+    events.send(DownloadEvent::Started { total })?;
+
     grib.content = fetch_data(request).await?;
 
-    let _ = events.send(DownloadEvent::FinishedAll);
+    events.send(DownloadEvent::FinishedAll)?;
     Ok(grib)
 }

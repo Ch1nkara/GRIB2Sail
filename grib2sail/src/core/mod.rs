@@ -45,7 +45,7 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
     let mut result = vec![];
 
     for (idx, _) in request.urls.iter().enumerate() {
-        let _ = semaphore.clone().acquire_owned().await?;
+        let _permit = semaphore.clone().acquire_owned().await?;
         let req = request.clone();
         let handle = tokio::spawn(get_url(idx, req));
         result.push(handle.await??);
@@ -88,6 +88,6 @@ async fn get_url(
             Err(e) => return Err(GribError::Reqwest(e)),
         }
     };
-    let _ = req.events.send(DownloadEvent::FinishedOne);
+    req.events.send(DownloadEvent::FinishedOne)?;
     Ok((idx, bytes))
 }

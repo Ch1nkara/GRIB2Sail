@@ -11,7 +11,10 @@ use std::io::Error as IoError;
 use strum_macros::Display;
 use thiserror::Error;
 use tokio::{
-    sync::{AcquireError, mpsc::UnboundedSender},
+    sync::{
+        AcquireError,
+        mpsc::{UnboundedSender, error::SendError},
+    },
     task::JoinError,
 };
 
@@ -89,6 +92,9 @@ pub struct ReqwestData {
 pub enum GribError {
     #[error("Network error: {0}")]
     Reqwest(#[from] ReqError),
+
+    #[error("Send error: {0}")]
+    SendError(#[from] SendError<DownloadEvent>),
 
     #[error("Join error: {0}")]
     Join(#[from] JoinError),
