@@ -1,4 +1,4 @@
-use crate::core::{Component, Grib};
+use crate::core::{Component, Grib, Model};
 
 use chrono::{Duration, Local};
 use log::warn;
@@ -17,6 +17,13 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
     let mut urls = Vec::new();
 
     let domain = format!("https://{}/", NOAA_HOST);
+    let (model, format) = match grib.model {
+        Model::Gfs025 => ("0p25", "pgrb2"),
+        Model::Gfs050 => ("0p50", "pgrb2full"),
+        Model::Gfs100 => ("1p00", "pgrb2"),
+        _ => ("", ""),
+    };
+
     match url_type {
         UrlType::CheckAvailability => {
             let url = "pub/data/nccf/com/gfs/prod/gfs.";
@@ -28,8 +35,10 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                 let date_str = date.format("%Y%m%d").to_string();
                 for &hour_run in &runs {
                     let layer = format!(
-                        "gfs.t{}z.pgrb2.0p25.f{:03}",
+                        "gfs.t{}z.{}.{}.f{:03}",
                         hour_run,
+                        format,
+                        model,
                         grib.days * 24,
                     );
                     urls.push(format!(
@@ -40,7 +49,7 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             }
         }
         UrlType::GribData => {
-            let mut url = format!("{}cgi-bin/filter_gfs_0p25.pl", domain);
+            let mut url = format!("{}cgi-bin/filter_gfs_{}.pl", domain, model);
             url.push_str(&format!("?dir=%2Fgfs.{}%2Fatmos", run));
 
             let mut sub = "&subregion=".to_string();
@@ -75,8 +84,8 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             for hour in hours {
                 let mut temp_url = url.clone();
                 temp_url.push_str(&format!(
-                    "&file=gfs.t{}z.pgrb2.0p25.f{:03}",
-                    hour_run, hour,
+                    "&file=gfs.t{}z.{}.{}.f{:03}",
+                    hour_run, format, model, hour,
                 ));
                 for component in &grib.components {
                     match component {

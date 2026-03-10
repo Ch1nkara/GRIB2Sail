@@ -28,14 +28,14 @@ pub async fn download_grib(
         urls: Vec::new(),
     };
 
-    if grib.iridium && !(matches!(grib.model, Model::Gfs)) {
+    if grib.iridium && !grib.model.iridium_compatible() {
         let msg = String::from("This model is not compatible with iridium");
         return Err(GribError::InvalidConf(msg));
     }
 
     if grib.model.to_string().starts_with("arome") {
         grib = meteofrance::download_arome_grib(grib, request).await?;
-    } else if grib.model == Model::Gfs {
+    } else if grib.model.to_string().starts_with("gfs") {
         grib = noaa::download_gfs_grib(grib, request).await?;
     } else {
         let msg = format!("Unexpected model: {}", grib.model);

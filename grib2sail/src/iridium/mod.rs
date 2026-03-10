@@ -55,12 +55,12 @@ async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
 
     info!("Waiting for connexion to be established");
     let start = Instant::now();
-    Ok(loop {
+    loop {
         let conn_stat = get_status(&client).await?[0];
 
         if conn_stat == 4 {
             info!("Connexion step 4/4, internet reached via iridium");
-            break ();
+            break;
         } else if conn_stat == 0 {
             let mut msg = String::from("Iridium connection was broken,");
             msg.push_str(" wait a few seconds and try again");
@@ -76,7 +76,8 @@ async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
             msg.push_str(" giving up");
             return Err(GribError::Generic(msg));
         }
-    })
+    }
+    Ok(())
 }
 
 async fn get_status(client: &Client) -> Result<Vec<usize>, GribError> {

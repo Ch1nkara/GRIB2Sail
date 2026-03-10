@@ -45,7 +45,15 @@ pub enum Model {
     AromeIndien,
     AromeNcaledonie,
     AromePolynesie,
-    Gfs,
+    Gfs025,
+    Gfs050,
+    Gfs100,
+}
+
+impl Model {
+    pub fn iridium_compatible(&self) -> bool {
+        matches!(self, Model::Gfs025 | Model::Gfs050 | Model::Gfs100)
+    }
 }
 
 #[derive(Copy, Clone, ValueEnum, Debug, Display)]
