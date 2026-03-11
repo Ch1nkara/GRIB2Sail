@@ -1,3 +1,27 @@
+## [0.6.0] - 2026-03-11
+
+### 🚀 Features
+
+- Added iridium module
+- Added 2 gfs models 050 and 100
+
+### 🐛 Bug Fixes
+
+- Improved tests with sleeps
+- Progress bar showing too early
+- Handle ignored Results
+- Cover lacking elements in gfs tests
+- Gfs 050 and 100 lacking 1h step
+
+### 🚜 Refactor
+
+- Replace a direct call to imported func
+- Fetch_data retry download 3 times
+- Default to gfs instead of arome
+
+### 📚 Documentation
+
+- Updated docs and unit tests
 ## [0.5.2] - 2026-03-01
 
 ### 🐛 Bug Fixes
