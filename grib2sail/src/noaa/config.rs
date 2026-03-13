@@ -101,24 +101,21 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                             temp_url.push_str("&var_UGRD=on");
                             temp_url.push_str("&var_VGRD=on");
                             temp_url.push_str("&lev_10_m_above_ground=on");
-                            urls.push(format!("{}{}", temp_url, sub));
                         }
                         Component::WindGust => {
                             temp_url.push_str("&var_GUST=on&lev_surface=on");
-                            urls.push(format!("{}{}", temp_url, sub));
                         }
                         Component::Pressure => {
                             temp_url.push_str("&var_PRMSL=on");
                             temp_url.push_str("&lev_mean_sea_level=on");
-                            urls.push(format!("{}{}", temp_url, sub));
                         }
                         Component::CloudCover => {
                             temp_url.push_str("&var_TCDC=on");
                             temp_url.push_str("&lev_entire_atmosphere=on");
-                            urls.push(format!("{}{}", temp_url, sub));
                         }
                     }
                 }
+                urls.push(format!("{}{}", temp_url, sub));
             }
         }
     }
