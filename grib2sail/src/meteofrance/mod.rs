@@ -1,13 +1,18 @@
 mod config;
 mod token;
 
-use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
+use crate::core::{
+    DownloadEvent, Grib, GribError, ReqwestData, fetch_data, try_get_url,
+};
 use config::{UrlType, WIND_V, get_urls};
 use token::get_token;
 
 use log::{debug, info, warn};
 use regex::Regex;
-use reqwest::header::{AUTHORIZATION, HeaderValue};
+use reqwest::{
+    Method,
+    header::{AUTHORIZATION, HeaderValue},
+};
 use std::{thread::sleep, time::Duration};
 
 pub async fn download_arome_grib(
@@ -27,20 +32,35 @@ pub async fn download_arome_grib(
     request.urls = get_urls(&grib, UrlType::CheckAvailability, "");
     // List the forecasts availables, filter the wind ones and extract
     // the last 2 run dates from the last two lines
-    let forecast_runs_available = request
-        .client
-        .get(&request.urls[0])
-        .headers(request.headers.clone())
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-    let wind_runs: Vec<&str> = forecast_runs_available
-        .lines()
-        .filter(|line| line.contains(WIND_V))
-        .collect();
-    let last_two = &wind_runs[wind_runs.len().saturating_sub(2)..];
+    let mut attempts = 0;
+    let mut runs_available;
+    let mut wind_runs: Vec<&str>;
+    let last_two = loop {
+        attempts += 1;
+        if attempts > 1 {
+            info!("Failed to find latest forecast, retrying {}/3", attempts);
+            // Backoff before retrying
+            sleep(Duration::from_secs(1));
+        }
+        let req = request
+            .client
+            .request(Method::GET, &request.urls[0])
+            .headers(request.headers.clone())
+            .build()?;
+        runs_available = match try_get_url(&request.client, req).await {
+            Ok(b) => String::from_utf8(b)?,
+            Err(e) if attempts < 3 => continue,
+            Err(e) => return Err(e),
+        };
+        wind_runs = runs_available
+            .lines()
+            .filter(|line| line.contains(WIND_V))
+            .collect();
+        let last_two = &wind_runs[wind_runs.len().saturating_sub(2)..];
+        if last_two.len() == 2 {
+            break last_two;
+        }
+    };
 
     let last2run = vec![extract_date(last_two[1])?, extract_date(last_two[0])?];
     debug!("last2run: {:?}", last2run);

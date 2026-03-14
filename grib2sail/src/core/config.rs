@@ -7,6 +7,7 @@ use reqwest::{
     header::{HeaderMap, InvalidHeaderValue},
 };
 use self_update::errors::Error as SelfUpdateError;
+use std::string::FromUtf8Error;
 use std::{io::Error as IoError, num::ParseIntError};
 use strum_macros::Display;
 use thiserror::Error;
@@ -111,6 +112,9 @@ pub struct ReqwestData {
 pub enum GribError {
     #[error("Network error: {0}")]
     Reqwest(#[from] ReqError),
+
+    #[error("UTF-8 error: {0}")]
+    Utf8(#[from] FromUtf8Error),
 
     #[error("Send error: {0}")]
     SendError(#[from] SendError<DownloadEvent>),
