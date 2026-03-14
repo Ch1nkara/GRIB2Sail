@@ -1,3 +1,13 @@
+## [0.6.1] - 2026-03-14
+
+### 🐛 Bug Fixes
+
+- Less gfs requests for same result
+- Readme in crates.io
+
+### 🚜 Refactor
+
+- Retry up to 3 times if a request failed
 ## [0.6.0] - 2026-03-11
 
 ### 🚀 Features
