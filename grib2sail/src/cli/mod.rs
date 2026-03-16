@@ -51,7 +51,7 @@ struct Cli {
     debug: bool,
 
     #[arg(long, action = ArgAction::SetTrue)]
-    reset_keyring_arome: bool,
+    reset_keyring: bool,
 
     #[arg(long, short='u', action = ArgAction::SetTrue)]
     self_update: bool,
@@ -76,13 +76,10 @@ pub async fn start_cli() {
         }
     }
 
-    if args.reset_keyring_arome {
-        match keyring::delete_secret(&args.model) {
+    if args.reset_keyring {
+        match keyring::delete_secrets() {
             Ok(_) => return,
-            Err(e) => error_exit(&format!(
-                "Failed to reset arome keyring value: {}",
-                e
-            )),
+            Err(e) => error_exit(&format!("Failed to reset keyring: {}", e)),
         }
     }
 
@@ -100,7 +97,7 @@ pub async fn start_cli() {
         Err(e) => error_exit(&format!("Failed to parse longitudes: {}", e)),
     };
 
-    let secret = match keyring::get_secret(&args.model) {
+    let secret = match keyring::get_secret(&args.model).await {
         Ok(s) => s,
         Err(e) => error_exit(&e.to_string()),
     };

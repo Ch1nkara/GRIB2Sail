@@ -5,7 +5,7 @@ use crate::core::{
     DownloadEvent, Grib, GribError, ReqwestData, fetch_data, try_get_url,
 };
 use config::{UrlType, WIND_V, get_urls};
-use token::get_token;
+pub use token::get_token;
 
 use log::{debug, info, warn};
 use regex::Regex;
