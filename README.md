@@ -19,6 +19,9 @@ Currently, the supported models are:
     - gfs025 (resolution: 0.25° - 22 km)
     - gfs050 (resolution: 0.50° - 45 km)
     - gfs100 (resolution: 1.00° - 90 km)
+  - Arpege by MeteoFrance (FR):
+    - Arpege025 (resolution: 0.25° - 22 km)
+    - Arpege100 (resolution: 1.00° - 90 km)
 
 - Local models:
   - Arome by MeteoFrance (FR):
@@ -35,19 +38,19 @@ Currently, the supported models are:
 To install the cli follow the instructions in the [release page](https://github.com/Ch1nkara/GRIB2Sail/releases)
 ## Meteofrance prerequiste
 
-To download GRIB from meteofrance's models (Aome), you must create a free 
+To download GRIB from meteofrance's models (Arome, Arpege), you must create a free 
 account on meteofrance.fr. The procedure is as follow:
- 1. Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr)
- 2. Subscribe to the desired service (Arome)
- 3. Go to "My API" then, from your subscribed model: "Generate Token"
- 4. Checkout the curl field at the bottom, it looks like :
-   ```sh
-   curl -k -X POST https://portal-api.meteofrance.fr/token -d "grant_type=client_credentials" -H "Authorization: Basic ABCDEF1234abcdef"
-   ```
- 5. The string that comes after Basic is your application ID 
-   (ABCDEF1234abcdef in this example)
- 6. Copy/paste this application ID to GRIB2Sail when prompted (you will only
-   be prompted the first time you use GRIB2Sail)
+1. Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr)
+2. Subscribe to the desired service (Arome, Arpege)
+3. Go to "My API" then, from your subscribed model: "Generate Token"
+4. Checkout the curl field at the bottom, it looks like :
+  ```sh
+  curl -k -X POST https://portal-api.meteofrance.fr/token -d "grant_type=client_credentials" -H "Authorization: Basic ABCDEF1234abcdef"
+  ```
+5. The string that comes after Basic is your API subscription
+  (ABCDEF1234abcdef in this example)
+6. Copy/paste this subscription to GRIB2Sail when prompted (you will only
+  be prompted the first time you use a meteofrance model with GRIB2Sail)
 
 ## Usage
 

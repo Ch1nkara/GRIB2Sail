@@ -2,7 +2,7 @@ mod config;
 
 use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
 use crate::iridium::{iridium_connect, iridium_disconnect};
-use config::{NOAA_HOST, NOAA_SOCKET, UrlType, get_urls};
+use config::{NOAA, UrlType, get_urls};
 
 use log::{debug, info, warn};
 use reqwest::Client;
@@ -14,11 +14,11 @@ pub async fn download_gfs_grib(
 ) -> Result<Grib, GribError> {
     let is_iridium = grib.iridium;
     if is_iridium {
-        iridium_connect(NOAA_SOCKET).await?;
+        iridium_connect(NOAA).await?;
     }
     let grib_res = fetch_gfs_data(grib, request).await;
     if is_iridium {
-        iridium_disconnect(NOAA_SOCKET).await?;
+        iridium_disconnect(NOAA).await?;
     }
     grib_res
 }
@@ -27,16 +27,17 @@ async fn fetch_gfs_data(
     mut grib: Grib,
     mut request: ReqwestData,
 ) -> Result<Grib, GribError> {
+    if grib.iridium {
+        let mut builder = Client::builder().timeout(Duration::from_secs(60));
+        for (host, ip) in NOAA {
+            builder = builder.resolve(host, *ip);
+        }
+        request.client = builder.build()?;
+    }
+
     if grib.days > 16 {
         warn!("GFS forecast a limited to 16 days max");
         grib.days = 16;
-    }
-
-    if grib.iridium {
-        request.client = Client::builder()
-            .resolve(NOAA_HOST, NOAA_SOCKET)
-            .timeout(Duration::from_secs(60))
-            .build()?;
     }
 
     info!("Finding the latest available forecast");

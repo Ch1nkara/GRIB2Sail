@@ -84,7 +84,7 @@ const BODY_TASK_3: &str = r#"
 pub fn get_req(
     client: &Client,
     url_type: UrlType,
-    options: Option<(SocketAddr, usize)>,
+    options: Option<(&[(&str, SocketAddr)], usize)>,
 ) -> Result<Request, GribError> {
     let url = "http://192.168.0.1/sdk/sdk.php";
 
@@ -104,12 +104,17 @@ pub fn get_req(
             );
             "<name>all</name>"
         }
-        (UrlType::PerformTask, Some((s, _))) => {
+        (UrlType::PerformTask, Some((vs, _))) => {
             headers.insert(
                 "SOAPAction",
                 HeaderValue::from_static("http://192.168.0.1/sdk/performTask"),
             );
-            &format!("<value>{}-{}-all;</value>", s.ip(), s.port())
+            let formatted = vs
+                .iter()
+                .map(|(_, addr)| format!("{}-{}-all", addr.ip(), addr.port()))
+                .collect::<Vec<String>>()
+                .join(";");
+            &format!("<value>{}</value>", formatted)
         }
         (_, _) => {
             let mut msg = String::from("Unexpected get_req parameter");

@@ -8,19 +8,23 @@ use reqwest::{Client, Request};
 use std::net::SocketAddr;
 use tokio::time::{Duration, Instant, sleep};
 
-pub async fn iridium_connect(socket: SocketAddr) -> Result<(), GribError> {
+pub async fn iridium_connect(
+    sockets: &[(&str, SocketAddr)],
+) -> Result<(), GribError> {
     info!("Connecting to internet via iridium");
-    if let Err(e) = iridium_try_connect(socket).await {
-        let _ = iridium_disconnect(socket).await;
+    if let Err(e) = iridium_try_connect(sockets).await {
+        let _ = iridium_disconnect(sockets).await;
         return Err(e);
     }
     Ok(())
 }
 
-pub async fn iridium_disconnect(socket: SocketAddr) -> Result<(), GribError> {
+pub async fn iridium_disconnect(
+    sockets: &[(&str, SocketAddr)],
+) -> Result<(), GribError> {
     let client = Client::new();
     info!("Closing iridium connection");
-    let req = get_req(&client, UrlType::PerformTask, Some((socket, 0)))?;
+    let req = get_req(&client, UrlType::PerformTask, Some((sockets, 0)))?;
     let _ = send_request(&client, req).await?;
 
     loop {
@@ -35,7 +39,9 @@ pub async fn iridium_disconnect(socket: SocketAddr) -> Result<(), GribError> {
     Ok(())
 }
 
-async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
+async fn iridium_try_connect(
+    sockets: &[(&str, SocketAddr)],
+) -> Result<(), GribError> {
     info!("Checking that signal strength is better than 3/5");
     let client = Client::new();
     loop {
@@ -50,7 +56,7 @@ async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
     }
 
     info!("Signal strength ok, attempting connection");
-    let req = get_req(&client, UrlType::PerformTask, Some((socket, 1)))?;
+    let req = get_req(&client, UrlType::PerformTask, Some((sockets, 1)))?;
     let _ = send_request(&client, req).await?;
 
     info!("Waiting for connexion to be established");
