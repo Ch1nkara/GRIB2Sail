@@ -53,6 +53,10 @@ pub enum Model {
     AromeNcaledonie,
     #[clap(help = "Between -25.25°S and -12.6°S / -157.5°W and -144.5°W")]
     AromePolynesie,
+    #[clap(help = "Arpege 0,25° - 22km, worldwide")]
+    Arpege025,
+    #[clap(help = "Arpege 1,00° - 90km, worldwide")]
+    Arpege100,
     #[clap(help = "Gfs 0,25° - 22km, worldwide")]
     Gfs025,
     #[clap(help = "Gfs 0,50° - 45km, worldwide")]

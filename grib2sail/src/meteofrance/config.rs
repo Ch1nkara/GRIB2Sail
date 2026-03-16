@@ -11,16 +11,26 @@ pub enum UrlType {
 
 pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
     let mut url = String::from("https://public-api.meteofrance.fr/public/");
-    url.push_str("arome/1.0/wcs/MF-NWP-HIGHRES-AROME-");
-    match grib.model {
-        Model::Arome => url.push_str("001-FRANCE"),
-        Model::Arome0025 => url.push_str("0025-FRANCE"),
-        Model::AromeAntille => url.push_str("OM-0025-ANTIL"),
-        Model::AromeGuyane => url.push_str("OM-0025-GUYANE"),
-        Model::AromeIndien => url.push_str("OM-0025-INDIEN"),
-        Model::AromeNcaledonie => url.push_str("OM-0025-NCALED"),
-        Model::AromePolynesie => url.push_str("OM-0025-POLYN"),
-        _ => return Vec::<String>::new(),
+
+    if grib.model.to_string().starts_with("arome") {
+        url.push_str("arome/1.0/wcs/MF-NWP-HIGHRES-AROME-");
+        match grib.model {
+            Model::Arome => url.push_str("001-FRANCE"),
+            Model::Arome0025 => url.push_str("0025-FRANCE"),
+            Model::AromeAntille => url.push_str("OM-0025-ANTIL"),
+            Model::AromeGuyane => url.push_str("OM-0025-GUYANE"),
+            Model::AromeIndien => url.push_str("OM-0025-INDIEN"),
+            Model::AromeNcaledonie => url.push_str("OM-0025-NCALED"),
+            Model::AromePolynesie => url.push_str("OM-0025-POLYN"),
+            _ => return Vec::<String>::new(),
+        }
+    } else if grib.model.to_string().starts_with("arpege") {
+        url.push_str("arpege/1.0/wcs/MF-NWP-GLOBAL-ARPEGE-");
+        match grib.model {
+            Model::Arpege100 => url.push_str("01-ATOURX"),
+            Model::Arpege025 => url.push_str("025-GLOBE"),
+            _ => return Vec::<String>::new(),
+        }
     }
     url.push_str("-WCS/");
     match url_type {
@@ -37,10 +47,29 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
         }
     }
     let mut urls = Vec::new();
-    for component in &grib.components {
-        for time in (0..=(24 * 60 * 60 * grib.days))
-            .step_by(60 * 60 * (grib.step as usize))
+    let mut times = Vec::new();
+    let mut step = grib.step as usize;
+    if step == 1 && grib.model == Model::Arpege100 {
+        // Only arpege025 can have a step of 1h, defaulting to 3h
+        step = 3;
+    }
+    if step == 1 && grib.model == Model::Arpege025 && grib.days > 2 {
+        // Only the first 2 days can have a step of 1h, the rest will have a 3h step
+        for t in (0..=24 * 60 * 60 * 2).step_by(3600) {
+            times.push(t);
+        }
+        for t in (24 * 60 * 60 * 2 + 3 * 3600..=24 * 60 * 60 * grib.days)
+            .step_by(3 * 3600)
         {
+            times.push(t);
+        }
+    } else {
+        for t in (0..=24 * 60 * 60 * grib.days).step_by(step * 3600) {
+            times.push(t);
+        }
+    }
+    for component in &grib.components {
+        for time in &times {
             let mut temp_url = url.clone();
             temp_url.push_str(&format!("&subset=time({})", time));
             temp_url.push_str(&format!(
@@ -69,7 +98,7 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     urls.push(windv_url);
                 }
                 Component::WindGust => {
-                    if time == 0 {
+                    if *time == 0 {
                         continue;
                     }
                     temp_url.push_str("&coverageid=");
@@ -86,7 +115,7 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     urls.push(temp_url);
                 }
                 Component::CloudCover => {
-                    if time == 0 {
+                    if *time == 0 {
                         continue;
                     }
                     temp_url.push_str("&coverageid=");

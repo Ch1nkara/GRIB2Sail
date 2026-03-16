@@ -33,8 +33,10 @@ pub async fn download_grib(
         return Err(GribError::InvalidConf(msg));
     }
 
-    if grib.model.to_string().starts_with("arome") {
-        grib = meteofrance::download_arome_grib(grib, request).await?;
+    if grib.model.to_string().starts_with("arome")
+        || grib.model.to_string().starts_with("arpege")
+    {
+        grib = meteofrance::download_arome_arpege_grib(grib, request).await?;
     } else if grib.model.to_string().starts_with("gfs") {
         grib = noaa::download_gfs_grib(grib, request).await?;
     } else {

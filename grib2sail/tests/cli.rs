@@ -28,6 +28,25 @@ fn gfs_3() {
 }
 
 #[test]
+fn arpege025() {
+    let mut command = vec!["-m", "arpege025", "-s", "1h", "-d", "5"];
+    command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
+    command.extend(&["-L", "43,44", "-l", "5,6"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
+fn arpege100() {
+    thread::sleep(Duration::from_mins(1));
+    let mut command = vec!["-m", "arpege100", "-s", "1h", "-d", "5"];
+    command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
+    command.extend(&["-L", "43,44", "-l", "5,6"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
 fn arome() {
     let mut command = vec!["-m", "arome", "-s", "1h", "-d", "1"];
     command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);

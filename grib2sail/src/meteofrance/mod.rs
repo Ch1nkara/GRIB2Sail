@@ -2,7 +2,7 @@ mod config;
 mod token;
 
 use crate::core::{
-    DownloadEvent, Grib, GribError, ReqwestData, fetch_data, try_get_url,
+    DownloadEvent, Grib, GribError, Model, ReqwestData, fetch_data, try_get_url,
 };
 use config::{UrlType, WIND_V, get_urls};
 pub use token::get_token;
@@ -15,7 +15,7 @@ use reqwest::{
 };
 use std::{thread::sleep, time::Duration};
 
-pub async fn download_arome_grib(
+pub async fn download_arome_arpege_grib(
     mut grib: Grib,
     mut request: ReqwestData,
 ) -> Result<Grib, GribError> {
@@ -23,9 +23,25 @@ pub async fn download_arome_grib(
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     request.headers.insert(AUTHORIZATION, bearer_header);
 
-    if grib.days > 2 {
-        warn!("Arome forecast a limited to 2 days max");
-        grib.days = 2;
+    if grib.days > 2 && grib.model.to_string().starts_with("arome") {
+        warn!("Arome forecast is limited to 2 days max");
+    } else if grib.days > 4 && grib.model.to_string().starts_with("arpege") {
+        warn!("Arpege forecast is limited to 4 days max");
+        grib.days = 4;
+    }
+    if grib.step as usize == 1 && grib.model == Model::Arpege100 {
+        warn!(
+            "Only {} can have a step of 1h, defaulting to 3h",
+            Model::Arpege025
+        );
+    }
+    if grib.step as usize == 1
+        && grib.model == Model::Arpege025
+        && grib.days > 2
+    {
+        let mut msg = String::from("Only the first 2 days can have a");
+        msg.push_str(" step of 1h, the rest will have a 3h step");
+        warn!("{}", msg);
     }
 
     info!("Finding the latest available forecast");
