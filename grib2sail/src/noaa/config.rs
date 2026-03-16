@@ -1,4 +1,4 @@
-use crate::core::{Component, Grib, Model, Step};
+use crate::core::{Component, Grib, Model};
 
 use chrono::{Duration, Local};
 use log::warn;
@@ -62,31 +62,27 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             let hour_run = &run[pos..];
 
             let mut hours = Vec::new();
-            let mut step = grib.step;
-            if step as usize == 1 && grib.model != Model::Gfs025 {
+            let mut step = grib.step as usize;
+            if step == 1 && grib.model != Model::Gfs025 {
                 warn!(
                     "Only {} can have a step of 1h, defaulting to 3h",
                     Model::Gfs025
                 );
-                step = Step::H3;
+                step = 3;
             }
-            if step as usize == 1 && grib.days > 5 {
+            if step == 1 && grib.days > 5 {
                 let mut msg = String::from("Only the first 5 days can have a");
                 msg.push_str(" step of 1h, the rest will have a 3h step");
                 warn!("{}", msg);
                 for h in 0..=120 {
                     hours.push(h);
                 }
-                let mut h = 123;
-                while h <= grib.days * 24 {
+                for h in (123..=24 * grib.days).step_by(3) {
                     hours.push(h);
-                    h += 3;
                 }
             } else {
-                let mut h = 0;
-                while h <= grib.days * 24 {
+                for h in (0..=24 * grib.days).step_by(step) {
                     hours.push(h);
-                    h += step as u32;
                 }
             }
             for hour in hours {
