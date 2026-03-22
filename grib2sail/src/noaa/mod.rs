@@ -62,8 +62,7 @@ async fn fetch_gfs_data(
     }
     debug!("Latest available forecast is {}", last_run);
     if last_run.is_empty() {
-        let msg = String::from("Couldn't find latest available forecast");
-        return Err(GribError::Generic(msg));
+        return Err("Couldn't find latest available forecast".into());
     }
 
     request.urls = get_urls(&grib, UrlType::GribData, &last_run);

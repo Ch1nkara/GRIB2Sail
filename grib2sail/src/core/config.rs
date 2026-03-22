@@ -156,3 +156,9 @@ pub enum GribError {
     #[error("Error: {0}")]
     Generic(String),
 }
+
+impl From<&str> for GribError {
+    fn from(s: &str) -> Self {
+        GribError::Generic(s.to_string())
+    }
+}

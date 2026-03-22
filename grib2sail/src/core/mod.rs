@@ -41,7 +41,7 @@ pub async fn download_grib(
         grib = noaa::download_gfs_grib(grib, request).await?;
     } else {
         let msg = format!("Unexpected model: {}", grib.model);
-        return Err(GribError::InvalidConf(msg));
+        return Err(GribError::Generic(msg));
     }
 
     Ok(grib)

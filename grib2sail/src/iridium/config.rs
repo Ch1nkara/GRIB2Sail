@@ -128,11 +128,7 @@ pub fn get_req(
                 BODY_TASK_1, action, BODY_TASK_2, param, BODY_TASK_3
             )
         }
-        (_, _) => {
-            let mut msg = String::from("Unexpected get_req parameter");
-            msg.push_str(" combinaison");
-            return Err(GribError::Generic(msg));
-        }
+        (_, _) => return Err("Unexpected get_req parameter combinaison".into()),
     };
 
     Ok(client.post(url).headers(headers).body(body).build()?)
@@ -165,8 +161,7 @@ pub fn parse_response(
             if let Some(m) = cap.get(1) {
                 results.push(m.as_str().to_string());
             } else {
-                let msg = String::from("Failed to parse iridium response");
-                return Err(GribError::Generic(msg));
+                return Err("Failed to parse iridium response".into());
             }
         }
     }

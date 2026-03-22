@@ -75,23 +75,23 @@ pub fn set_progress_bar(len: usize) -> Result<(), g2s::GribError> {
 }
 
 pub fn increment_progress_bar(inc: u64) -> Result<(), g2s::GribError> {
-    let mutex = PROGRESS_BAR.get().ok_or_else(|| {
-        g2s::GribError::Generic("progress bar not initialized".to_string())
-    })?;
+    let mutex = PROGRESS_BAR
+        .get()
+        .ok_or_else(|| g2s::GribError::from("progress bar not initialized"))?;
     let guard = mutex.lock().map_err(|e| {
         g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
     })?;
     let pb = guard.as_ref().ok_or_else(|| {
-        g2s::GribError::Generic("progress bar inside mutex is None".to_string())
+        g2s::GribError::from("progress bar inside mutex is None")
     })?;
     pb.inc(inc);
     Ok(())
 }
 
 pub fn clear_progress_bar() -> Result<(), g2s::GribError> {
-    let mutex = PROGRESS_BAR.get().ok_or_else(|| {
-        g2s::GribError::Generic("progress bar not initialized".to_string())
-    })?;
+    let mutex = PROGRESS_BAR
+        .get()
+        .ok_or_else(|| g2s::GribError::from("progress bar not initialized"))?;
     let mut guard = mutex.lock().map_err(|e| {
         g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
     })?;
@@ -103,10 +103,10 @@ pub fn init(level_filter: LevelFilter) -> Result<(), g2s::GribError> {
     let logger = GribLogger { level_filter };
     LOGGER
         .set(logger)
-        .map_err(|_| g2s::GribError::Generic("setting failed".to_string()))?;
+        .map_err(|_| g2s::GribError::from("Log setting failed"))?;
     let logger_ref = LOGGER
         .get()
-        .ok_or_else(|| g2s::GribError::Generic("getting failed".to_string()))?;
+        .ok_or_else(|| g2s::GribError::from("Log getting failed"))?;
     set_logger(logger_ref)?;
     set_max_level(level_filter);
     Ok(())
