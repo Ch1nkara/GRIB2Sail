@@ -28,7 +28,7 @@ async fn fetch_gfs_data(
     mut request: ReqwestData,
 ) -> Result<Grib, GribError> {
     if grib.days > 16 {
-        warn!("GFS forecast a limited to 16 days max");
+        warn!("GFS forecast is limited to 16 days max");
         grib.days = 16;
     }
 
