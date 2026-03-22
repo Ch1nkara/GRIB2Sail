@@ -34,11 +34,11 @@ struct Cli {
         long,
         short = 'L',
         allow_hyphen_values = true,
-        default_value = "42,43"
+        default_value = "42:43"
     )]
     lat: String,
 
-    #[arg(long, short, allow_hyphen_values = true, default_value = "5,6")]
+    #[arg(long, short, allow_hyphen_values = true, default_value = "5:6")]
     lon: String,
 
     #[arg(long, short, default_value = ".")]
@@ -172,20 +172,20 @@ fn error_exit(msg: &str) -> ! {
 }
 
 fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
-    let coord: Vec<&str> = coord_str.split(',').collect();
+    let coord: Vec<&str> = coord_str.split(':').collect();
     if coord.len() != 2 {
         let mut msg = String::from("Each --lat and --lon must contain");
         msg.push_str(" exactly two coordinates separated by a comma.");
-        msg.push_str(" Ex: --lat 5.55,6.05");
+        msg.push_str(" Ex: --lat 5.55:6.05");
         return Err(g2s::GribError::InvalidConf(msg));
     }
     let mut result = Vec::with_capacity(2);
     for c in coord {
-        match c.trim().parse::<f64>() {
+        match c.trim().replace(',', ".").parse::<f64>() {
             Ok(nb) => result.push(nb),
             Err(_) => {
                 let mut msg = String::from("Each --lat and --lon must be");
-                msg.push_str(" valid numbers. Ex: --lat 5.5,6.3");
+                msg.push_str(" valid numbers. Ex: --lat 5.5:6.3");
                 return Err(g2s::GribError::InvalidConf(msg));
             }
         }

@@ -59,7 +59,7 @@ pressure and the cloud coverage for the area between latitude 11.5N - 12.5N
 and longitude 62.5W - 61.5W with a 1 hour step for 2 days from the arome-antille model 
 run:
 ```sh
-grib2sail-cli --model arome-antille --lat 11.5,12.5 --lon -62.5,-61.5 --step 1h --days 2 --components wind,wind-gust,cloud-cover,pressure --outdir .
+grib2sail-cli --model arome-antille --lat 11.5:12.5 --lon -62.5:-61.5 --step 1h --days 2 --components wind,wind-gust,cloud-cover,pressure --outdir .
 ```
 
 The first time you will be prompted to enter your application ID. It will be 
@@ -87,6 +87,6 @@ Simply delete the file grib2sail-cli
 ## Roadmap
 
 Main upcoming features:
- - adding more supported models (arpege, ecmwf...)
+ - adding more supported models (ICON...)
  - adding more supported variables (rain, sea state)
  - adding a application (android, windows, linux)
