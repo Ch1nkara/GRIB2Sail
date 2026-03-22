@@ -4,11 +4,15 @@ pub use config::{
     Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step,
 };
 
+use crate::ecmwf;
 use crate::meteofrance;
 use crate::noaa;
 
-use log::info;
-use reqwest::{Client, Method, Request};
+use log::{debug, info};
+use reqwest::{
+    Client, Method, Request,
+    header::{HeaderMap, HeaderValue, RANGE},
+};
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::{Semaphore, mpsc::UnboundedSender},
@@ -38,6 +42,8 @@ pub async fn download_grib(
         grib = meteofrance::download_arome_arpege_grib(grib, request).await?;
     } else if grib.model.to_string().starts_with("gfs") {
         grib = noaa::download_gfs_grib(grib, request).await?;
+    } else if grib.model == Model::Ecmwf {
+        grib = ecmwf::download_ecmwf_grib(grib, request).await?;
     } else {
         let msg = format!("Unexpected model: {}", grib.model);
         return Err(GribError::Generic(msg));
@@ -50,11 +56,36 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
     let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
     let mut result = vec![];
 
-    for (idx, _) in request.urls_headers.iter().enumerate() {
+    for (idx, urls_headers) in request.urls_headers.iter().enumerate() {
         let _permit = semaphore.clone().acquire_owned().await?;
         let req = request.clone();
-        let handle = tokio::spawn(get_url(idx, req));
-        result.push(handle.await??);
+        if let Some(range_header) = urls_headers.1.get("range") {
+            let range_str = range_header.to_str()?;
+            if !range_str.starts_with("bytes=") {
+                return Err("Unexpected non-bytes RANGE header".into());
+            }
+            let ranges = &range_str[6..];
+            let ranges_vec = ranges.split(',');
+            let nb_r = ranges_vec.clone().count();
+            if nb_r < 1 {
+                return Err("Unexpected empty RANGE header".into());
+            }
+            for (idx_r, byte_range) in ranges_vec.enumerate() {
+                let mut req = request.clone();
+                let mut headers = HeaderMap::new();
+                headers.insert(
+                    RANGE,
+                    HeaderValue::from_str(&format!("bytes={}", byte_range))?,
+                );
+                req.urls_headers[idx].1 = headers;
+                let handle = tokio::spawn(get_url(idx, req));
+                let (_, r) = handle.await??;
+                result.push((idx * nb_r + idx_r, r))
+            }
+        } else {
+            let handle = tokio::spawn(get_url(idx, req));
+            result.push(handle.await??);
+        }
     }
 
     // Restore original order
@@ -95,6 +126,7 @@ pub async fn try_get_url(
     client: &Client,
     req: Request,
 ) -> Result<Vec<u8>, GribError> {
+    debug!("Sending request {:?}", req);
     let resp = client.execute(req).await?;
     let resp = resp.error_for_status()?;
     Ok(resp.bytes().await?.to_vec())

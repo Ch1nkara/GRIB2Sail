@@ -4,7 +4,7 @@ use log::SetLoggerError;
 use regex::Error as RegError;
 use reqwest::{
     Client, Error as ReqError,
-    header::{HeaderMap, InvalidHeaderValue},
+    header::{HeaderMap, InvalidHeaderValue, ToStrError},
 };
 use self_update::errors::Error as SelfUpdateError;
 use std::string::FromUtf8Error;
@@ -63,6 +63,8 @@ pub enum Model {
     Gfs050,
     #[clap(help = "Gfs 1,00° - 90km, worldwide")]
     Gfs100,
+    #[clap(help = "ECMWF 0,25° - 22km, worldwide")]
+    Ecmwf,
 }
 
 impl Model {
@@ -118,6 +120,9 @@ pub enum GribError {
 
     #[error("UTF-8 error: {0}")]
     Utf8(#[from] FromUtf8Error),
+
+    #[error("ToStr error: {0}")]
+    ToStr(#[from] ToStrError),
 
     #[error("Send error: {0}")]
     SendError(#[from] SendError<DownloadEvent>),

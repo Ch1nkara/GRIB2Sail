@@ -19,6 +19,8 @@ Currently, the supported models are:
     - gfs025 (resolution: 0.25° - 22 km)
     - gfs050 (resolution: 0.50° - 45 km)
     - gfs100 (resolution: 1.00° - 90 km)
+  - IFS by ECMWF (Europe):
+    - ecmwf (resolution: 0.25° - 22 km)
   - Arpege by MeteoFrance (FR):
     - Arpege025 (resolution: 0.25° - 22 km)
     - Arpege100 (resolution: 1.00° - 90 km)
@@ -36,7 +38,9 @@ Currently, the supported models are:
 ## Installation
 
 To install the cli follow the instructions in the [release page](https://github.com/Ch1nkara/GRIB2Sail/releases)
-## Meteofrance prerequiste
+## Some prerequistes
+
+### Meteofrance models (Arome, Arpege)
 
 To download GRIB from meteofrance's models (Arome, Arpege), you must create a free 
 account on meteofrance.fr. The procedure is as follow:
@@ -51,6 +55,14 @@ account on meteofrance.fr. The procedure is as follow:
   (ABCDEF1234abcdef in this example)
 6. Copy/paste this subscription to GRIB2Sail when prompted (you will only
   be prompted the first time you use a meteofrance model with GRIB2Sail)
+
+### ECMWF Model
+
+ECMWF model can only be downloaded for the entire earth surface, not just a specific area. This program will try to call `cdo` binary (Climate Data Operator, a tool for manipulating grib files) in order to reshape them. If cdo in not installed on the machine, the full grib file will be provided.
+
+Please note that the full earth grib file can be unreadable by some third party softwares such as OpenCPN.
+
+To install `cdo` on a Ubuntu machine, use the command `sudo apt install cdo`.
 
 ## Usage
 

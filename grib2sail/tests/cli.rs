@@ -28,6 +28,15 @@ fn gfs_3() {
 }
 
 #[test]
+fn ecmwf() {
+    let mut command = vec!["-m", "ecmwf", "-s", "1h", "-d", "18"];
+    command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
+    command.extend(&["-L", "-1.18:1.33", "-l", "5.25:6"]);
+    command.extend(&["-o", "."]);
+    cli_call(command);
+}
+
+#[test]
 fn arpege025() {
     let mut command = vec!["-m", "arpege025", "-s", "1h", "-d", "5"];
     command.extend(&["-c", "wind,wind-gust,pressure,cloud-cover"]);
@@ -116,12 +125,14 @@ fn cli_call(args: Vec<&str>) {
         .output()
         .expect("Failed to execute CLI");
 
-    assert!(
-        output.status.success(),
-        "Command failed with stdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let mut msg = String::new();
+    if !output.status.success() {
+        msg = format!(
+            "Command failed with stdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 
     let folder_path = args[args.len() - 1];
     let entries = fs::read_dir(folder_path).expect("Folder not found");
@@ -136,7 +147,7 @@ fn cli_call(args: Vec<&str>) {
                 {
                     let metadata =
                         fs::metadata(&path).expect("Failed to get metadata");
-                    assert!(metadata.len() > 0, "Grib file is empty");
+                    assert!(metadata.len() > 0, "Grib file is empty\n{}", msg);
                     fs::remove_file(&path).expect("Failed to delete file");
                     found = true;
                     break;
@@ -144,5 +155,6 @@ fn cli_call(args: Vec<&str>) {
             }
         }
     }
-    assert!(found, "No grib file written");
+    assert!(found, "No grib file written\n{}", msg);
+    assert!(output.status.success(), "{}", msg);
 }
