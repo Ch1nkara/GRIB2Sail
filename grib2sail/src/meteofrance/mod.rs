@@ -66,7 +66,7 @@ pub async fn download_arome_arpege_grib(
             .build()?;
         runs_available = match try_get_url(&request.client, req).await {
             Ok(b) => String::from_utf8(b)?,
-            Err(e) if attempts < 3 => continue,
+            Err(_) if attempts < 3 => continue,
             Err(e) => return Err(e),
         };
         wind_runs = runs_available

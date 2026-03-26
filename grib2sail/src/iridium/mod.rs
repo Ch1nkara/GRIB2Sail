@@ -105,13 +105,13 @@ async fn send_request(
         })?;
         let resp = match client.execute(req_clone).await {
             Ok(r) => r,
-            Err(e) if attempts < 3 => continue,
+            Err(_) if attempts < 3 => continue,
             Err(e) => return Err(GribError::Reqwest(e)),
         };
         let resp = resp.error_for_status()?;
         match resp.text().await {
             Ok(t) => break t,
-            Err(e) if attempts < 3 => continue,
+            Err(_) if attempts < 3 => continue,
             Err(e) => return Err(GribError::Reqwest(e)),
         }
     })

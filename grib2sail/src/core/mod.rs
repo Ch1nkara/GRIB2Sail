@@ -83,7 +83,7 @@ async fn get_url(
             .build()?;
         match try_get_url(&request.client, req).await {
             Ok(b) => break b,
-            Err(e) if attempts < 3 => continue,
+            Err(_) if attempts < 3 => continue,
             Err(e) => return Err(e),
         }
     };
