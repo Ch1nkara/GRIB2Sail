@@ -1,3 +1,12 @@
+## [0.7.0] - 2026-03-27
+
+### 🚀 Features
+
+- Added ECMWF model
+
+### 🐛 Bug Fixes
+
+- Concurrency not working
 ## [0.6.1] - 2026-03-14
 
 ### 🐛 Bug Fixes
