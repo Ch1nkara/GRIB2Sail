@@ -2,11 +2,23 @@
 
 ### 🚀 Features
 
+- Added ARPEGE model
 - Added ECMWF model
 
 ### 🐛 Bug Fixes
 
+- Typo in warning message
+- Warning unsued variable e
 - Concurrency not working
+
+### 🚜 Refactor
+
+- Keyring meteofrance instead of arome
+- Noaa Step in url generation
+- Implemented GribError::from
+- Change lat lon separator , to :
+- Change ReqwestData urls to urls_headers
+
 ## [0.6.1] - 2026-03-14
 
 ### 🐛 Bug Fixes
