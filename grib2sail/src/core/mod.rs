@@ -54,10 +54,10 @@ pub async fn download_grib(
 
 pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
     let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
-    let mut result = vec![];
+    let mut result = Vec::new();
+    let mut tasks = Vec::new();
 
     for (idx, urls_headers) in request.urls_headers.iter().enumerate() {
-        let _permit = semaphore.clone().acquire_owned().await?;
         let req = request.clone();
         if let Some(range_header) = urls_headers.1.get("range") {
             let range_str = range_header.to_str()?;
@@ -78,14 +78,22 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
                     HeaderValue::from_str(&format!("bytes={}", byte_range))?,
                 );
                 req.urls_headers[idx].1 = headers;
-                let handle = tokio::spawn(get_url(idx, req));
-                let (_, r) = handle.await??;
-                result.push((idx * nb_r + idx_r, r))
+                tasks.push((
+                    idx * nb_r + idx_r,
+                    tokio::spawn(get_url(idx, req, semaphore.clone())),
+                ));
             }
         } else {
-            let handle = tokio::spawn(get_url(idx, req));
-            result.push(handle.await??);
+            tasks.push((
+                idx,
+                tokio::spawn(get_url(idx, req, semaphore.clone())),
+            ));
         }
+    }
+
+    // Collect data as they are downloaded by individual tasks
+    for task in tasks {
+        result.push((task.0, task.1.await??))
     }
 
     // Restore original order
@@ -98,7 +106,9 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
 async fn get_url(
     idx: usize,
     request: ReqwestData,
-) -> Result<(usize, Vec<u8>), GribError> {
+    semaphore: Arc<Semaphore>,
+) -> Result<Vec<u8>, GribError> {
+    let _permit = semaphore.acquire_owned().await?;
     let mut attempts = 0;
     let bytes = loop {
         attempts += 1;
@@ -119,7 +129,7 @@ async fn get_url(
         }
     };
     request.events.send(DownloadEvent::FinishedOne)?;
-    Ok((idx, bytes))
+    Ok(bytes)
 }
 
 pub async fn try_get_url(
