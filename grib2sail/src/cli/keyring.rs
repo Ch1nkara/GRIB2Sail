@@ -2,7 +2,7 @@ use grib2sail as g2s;
 
 use keyring::{Entry, Error};
 use log::{error, info, warn};
-use reqwest::{Client, header::HeaderMap};
+use reqwest::Client;
 use std::io::stdin;
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -44,8 +44,7 @@ async fn get_password(id: &str) -> Result<String, g2s::GribError> {
             let request = g2s::ReqwestData {
                 client: Client::new(),
                 events: tx,
-                headers: HeaderMap::new(),
-                urls: Vec::new(),
+                urls_headers: Vec::new(),
             };
             let mut secret = String::new();
 

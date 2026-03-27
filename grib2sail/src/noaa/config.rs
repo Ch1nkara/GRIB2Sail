@@ -2,6 +2,7 @@ use crate::core::{Component, Grib, Model};
 
 use chrono::{Duration, Local};
 use log::warn;
+use reqwest::header::HeaderMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub static NOAA_HOST: &str = "nomads.ncep.noaa.gov";
@@ -13,8 +14,12 @@ pub enum UrlType {
     GribData,
 }
 
-pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
-    let mut urls = Vec::new();
+pub fn get_urls(
+    grib: &Grib,
+    url_type: UrlType,
+    run: &str,
+) -> Vec<(String, HeaderMap)> {
+    let mut urls_headers = Vec::new();
 
     let domain = format!("https://{}/", NOAA_HOST);
     let (model, format) = match grib.model {
@@ -41,9 +46,12 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                         model,
                         grib.days * 24,
                     );
-                    urls.push(format!(
-                        "{}{}{}/{}/atmos/{}",
-                        domain, url, date_str, hour_run, layer,
+                    urls_headers.push((
+                        format!(
+                            "{}{}{}/{}/atmos/{}",
+                            domain, url, date_str, hour_run, layer,
+                        ),
+                        HeaderMap::new(),
                     ));
                 }
             }
@@ -111,9 +119,10 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                         }
                     }
                 }
-                urls.push(format!("{}{}", temp_url, sub));
+                urls_headers
+                    .push((format!("{}{}", temp_url, sub), HeaderMap::new()));
             }
         }
     }
-    urls
+    urls_headers
 }

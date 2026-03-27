@@ -8,7 +8,7 @@ use crate::meteofrance;
 use crate::noaa;
 
 use log::info;
-use reqwest::{Client, Method, Request, header::HeaderMap};
+use reqwest::{Client, Method, Request};
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::{Semaphore, mpsc::UnboundedSender},
@@ -24,8 +24,7 @@ pub async fn download_grib(
     let request = ReqwestData {
         client,
         events,
-        headers: HeaderMap::new(),
-        urls: Vec::new(),
+        urls_headers: Vec::new(),
     };
 
     if grib.iridium && !grib.model.iridium_compatible() {
@@ -51,7 +50,7 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
     let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
     let mut result = vec![];
 
-    for (idx, _) in request.urls.iter().enumerate() {
+    for (idx, _) in request.urls_headers.iter().enumerate() {
         let _permit = semaphore.clone().acquire_owned().await?;
         let req = request.clone();
         let handle = tokio::spawn(get_url(idx, req));
@@ -79,8 +78,8 @@ async fn get_url(
         }
         let req = request
             .client
-            .request(Method::GET, &request.urls[idx])
-            .headers(request.headers.clone())
+            .request(Method::GET, &request.urls_headers[idx].0)
+            .headers(request.urls_headers[idx].1.clone())
             .build()?;
         match try_get_url(&request.client, req).await {
             Ok(b) => break b,

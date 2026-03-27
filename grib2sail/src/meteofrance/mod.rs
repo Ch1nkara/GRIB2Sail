@@ -11,7 +11,7 @@ use log::{debug, info, warn};
 use regex::Regex;
 use reqwest::{
     Method,
-    header::{AUTHORIZATION, HeaderValue},
+    header::{AUTHORIZATION, HeaderMap, HeaderValue},
 };
 use std::{thread::sleep, time::Duration};
 
@@ -21,7 +21,8 @@ pub async fn download_arome_arpege_grib(
 ) -> Result<Grib, GribError> {
     let token = get_token(&grib.secret, &request).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
-    request.headers.insert(AUTHORIZATION, bearer_header);
+    let mut headers = HeaderMap::new();
+    headers.insert(AUTHORIZATION, bearer_header);
 
     if grib.days > 2 && grib.model.to_string().starts_with("arome") {
         warn!("Arome forecast is limited to 2 days max");
@@ -45,7 +46,7 @@ pub async fn download_arome_arpege_grib(
     }
 
     info!("Finding the latest available forecast");
-    request.urls = get_urls(&grib, UrlType::CheckAvailability, "");
+    request.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
     // List the forecasts availables, filter the wind ones and extract
     // the last 2 run dates from the last two lines
     let mut attempts = 0;
@@ -60,8 +61,8 @@ pub async fn download_arome_arpege_grib(
         }
         let req = request
             .client
-            .request(Method::GET, &request.urls[0])
-            .headers(request.headers.clone())
+            .request(Method::GET, &request.urls_headers[0].0)
+            .headers(headers.clone())
             .build()?;
         runs_available = match try_get_url(&request.client, req).await {
             Ok(b) => String::from_utf8(b)?,
@@ -82,27 +83,32 @@ pub async fn download_arome_arpege_grib(
     debug!("last2run: {:?}", last2run);
 
     let mut run = &last2run[0];
-    request.urls = get_urls(&grib, UrlType::GribData, run);
+    request.urls_headers = get_urls(&grib, UrlType::GribData, run);
     //debug!("Urls generated are: {:?}", layer_urls);
 
     // If the last run does not have all the required layers yet,
     // fall back to the previous one
     if request
         .client
-        .get(&request.urls[request.urls.len() - 1])
-        .headers(request.headers.clone())
+        .get(&request.urls_headers[request.urls_headers.len() - 1].0)
+        .headers(headers.clone())
         .send()
         .await?
         .error_for_status()
         .is_err()
     {
         run = &last2run[1];
-        request.urls = get_urls(&grib, UrlType::GribData, run);
+        request.urls_headers = get_urls(&grib, UrlType::GribData, run);
     }
 
     info!("Downloading the grib layers");
-    let total = request.urls.len();
+    let total = request.urls_headers.len();
     let events = request.events.clone();
+
+    // Add token header to every request url
+    for (_, h) in request.urls_headers.iter_mut() {
+        *h = headers.clone();
+    }
 
     // Change fomatting from 1970-01-01T00.00.00Z to 19700101-00z
     grib.run = run
@@ -126,10 +132,10 @@ pub async fn download_arome_arpege_grib(
         msg.push_str(" layers by increasing the step or reducing the number");
         msg.push_str(" of components");
         warn!("{}", msg);
-        let chunks = request.urls.chunks(100).collect::<Vec<_>>();
+        let chunks = request.urls_headers.chunks(100).collect::<Vec<_>>();
         for (i, chunk) in chunks.iter().enumerate() {
             let mut req = request.clone();
-            req.urls = chunk.to_vec();
+            req.urls_headers = chunk.to_vec();
             grib.content.append(&mut fetch_data(req).await?);
             if i != chunks.len() - 1 {
                 info!("Sleeping 1 minute...");

@@ -1,5 +1,7 @@
 use crate::core::{Component, Grib, Model};
 
+use reqwest::header::HeaderMap;
+
 pub static TOKEN_URL: &str = "https://portail-api.meteofrance.fr/token";
 pub static WIND_V: &str =
     "V_COMPONENT_OF_WIND__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND___";
@@ -9,7 +11,11 @@ pub enum UrlType {
     GribData,
 }
 
-pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
+pub fn get_urls(
+    grib: &Grib,
+    url_type: UrlType,
+    run: &str,
+) -> Vec<(String, HeaderMap)> {
     let mut url = String::from("https://public-api.meteofrance.fr/public/");
 
     if grib.model.to_string().starts_with("arome") {
@@ -22,14 +28,14 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             Model::AromeIndien => url.push_str("OM-0025-INDIEN"),
             Model::AromeNcaledonie => url.push_str("OM-0025-NCALED"),
             Model::AromePolynesie => url.push_str("OM-0025-POLYN"),
-            _ => return Vec::<String>::new(),
+            _ => return Vec::<(String, HeaderMap)>::new(),
         }
     } else if grib.model.to_string().starts_with("arpege") {
         url.push_str("arpege/1.0/wcs/MF-NWP-GLOBAL-ARPEGE-");
         match grib.model {
             Model::Arpege100 => url.push_str("01-ATOURX"),
             Model::Arpege025 => url.push_str("025-GLOBE"),
-            _ => return Vec::<String>::new(),
+            _ => return Vec::<(String, HeaderMap)>::new(),
         }
     }
     url.push_str("-WCS/");
@@ -38,7 +44,7 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             url.push_str("GetCapabilities?service=WCS");
             url.push_str("&version=1.3.0");
             url.push_str("&language=eng");
-            return vec![url];
+            return vec![(url, HeaderMap::new())];
         }
         UrlType::GribData => {
             url.push_str("GetCoverage?service=WCS");
@@ -46,7 +52,7 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
             url.push_str("&format=application/wmo-grib");
         }
     }
-    let mut urls = Vec::new();
+    let mut urls_headers = Vec::new();
     let mut times = Vec::new();
     let mut step = grib.step as usize;
     if step == 1 && grib.model == Model::Arpege100 {
@@ -94,8 +100,8 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     windv_url.push_str(run);
                     windu_url.push_str("&subset=height(10)");
                     windv_url.push_str("&subset=height(10)");
-                    urls.push(windu_url);
-                    urls.push(windv_url);
+                    urls_headers.push((windu_url, HeaderMap::new()));
+                    urls_headers.push((windv_url, HeaderMap::new()));
                 }
                 Component::WindGust => {
                     if *time == 0 {
@@ -106,13 +112,13 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     temp_url.push_str("SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND___");
                     temp_url.push_str(run);
                     temp_url.push_str("&subset=height(10)");
-                    urls.push(temp_url);
+                    urls_headers.push((temp_url, HeaderMap::new()));
                 }
                 Component::Pressure => {
                     temp_url.push_str("&coverageid=");
                     temp_url.push_str("PRESSURE__MEAN_SEA_LEVEL___");
                     temp_url.push_str(run);
-                    urls.push(temp_url);
+                    urls_headers.push((temp_url, HeaderMap::new()));
                 }
                 Component::CloudCover => {
                     if *time == 0 {
@@ -122,10 +128,10 @@ pub fn get_urls(grib: &Grib, url_type: UrlType, run: &str) -> Vec<String> {
                     temp_url.push_str("TOTAL_CLOUD_COVER__");
                     temp_url.push_str("GROUND_OR_WATER_SURFACE___");
                     temp_url.push_str(run);
-                    urls.push(temp_url);
+                    urls_headers.push((temp_url, HeaderMap::new()));
                 }
             }
         }
     }
-    urls
+    urls_headers
 }

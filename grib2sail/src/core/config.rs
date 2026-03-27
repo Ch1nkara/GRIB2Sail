@@ -108,8 +108,7 @@ pub enum DownloadEvent {
 pub struct ReqwestData {
     pub client: Client,
     pub events: UnboundedSender<DownloadEvent>,
-    pub headers: HeaderMap,
-    pub urls: Vec<String>,
+    pub urls_headers: Vec<(String, HeaderMap)>,
 }
 
 #[derive(Debug, Error)]
