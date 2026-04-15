@@ -1,3 +1,12 @@
+## [0.7.1] - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- Increase iridium timeout to 120 seconds
+
+### 🚜 Refactor
+
+- Fetch_url_5_try to reduce duplicates
 ## [0.7.0] - 2026-03-27
 
 ### 🚀 Features
