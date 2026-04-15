@@ -1,11 +1,13 @@
 mod config;
 
-use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
+use crate::core::{
+    DownloadEvent, Grib, GribError, ReqwestData, fetch_data, fetch_url_5_try,
+};
 use crate::iridium::{iridium_connect, iridium_disconnect};
 use config::{NOAA_HOST, NOAA_SOCKET, UrlType, get_urls};
 
 use log::{debug, info, warn};
-use reqwest::Client;
+use reqwest::{Client, Method};
 use std::time::Duration;
 
 pub async fn download_gfs_grib(
@@ -46,9 +48,8 @@ async fn fetch_gfs_data(
     request.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
     // The latest forecast is the first one that does not return an error status
     for (url, _) in &request.urls_headers {
-        let resp = request.client.head(url).send().await?;
-
-        if resp.error_for_status().is_ok() {
+        let req = request.client.request(Method::HEAD, url).build()?;
+        if fetch_url_5_try(&request.client, req).await.is_ok() {
             date = url[60..68].to_string();
             hour = url[69..71].to_string();
             last_run = format!("{}%2F{}", date, hour);

@@ -2,7 +2,8 @@ mod config;
 mod token;
 
 use crate::core::{
-    DownloadEvent, Grib, GribError, Model, ReqwestData, fetch_data, try_get_url,
+    DownloadEvent, Grib, GribError, Model, ReqwestData, fetch_data,
+    fetch_url_5_try,
 };
 use config::{UrlType, WIND_V, get_urls};
 pub use token::get_token;
@@ -49,26 +50,20 @@ pub async fn download_arome_arpege_grib(
     request.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
     // List the forecasts availables, filter the wind ones and extract
     // the last 2 run dates from the last two lines
-    let mut attempts = 0;
+    let mut attempts = 1;
     let mut runs_available;
     let mut wind_runs: Vec<&str>;
     let last_two = loop {
-        attempts += 1;
-        if attempts > 1 {
-            info!("Failed to find latest forecast, retrying {}/3", attempts);
-            // Backoff before retrying
-            sleep(Duration::from_secs(1));
+        if attempts > 3 {
+            return Err("Unable to find the latest availables forecasts".into());
         }
         let req = request
             .client
             .request(Method::GET, &request.urls_headers[0].0)
             .headers(headers.clone())
             .build()?;
-        runs_available = match try_get_url(&request.client, req).await {
-            Ok(b) => String::from_utf8(b)?,
-            Err(_) if attempts < 3 => continue,
-            Err(e) => return Err(e),
-        };
+        runs_available =
+            String::from_utf8(fetch_url_5_try(&request.client, req).await?)?;
         wind_runs = runs_available
             .lines()
             .filter(|line| line.contains(WIND_V))
@@ -77,6 +72,7 @@ pub async fn download_arome_arpege_grib(
         if last_two.len() == 2 {
             break last_two;
         }
+        attempts += 1;
     };
 
     let last2run = vec![extract_date(last_two[1])?, extract_date(last_two[0])?];

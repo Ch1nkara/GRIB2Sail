@@ -8,7 +8,7 @@ use crate::ecmwf;
 use crate::meteofrance;
 use crate::noaa;
 
-use log::{debug, info};
+use log::debug;
 use reqwest::{
     Client, Method, Request,
     header::{HeaderMap, HeaderValue, RANGE},
@@ -59,6 +59,7 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
 
     for (idx, urls_headers) in request.urls_headers.iter().enumerate() {
         let req = request.clone();
+        // split the requests by range if a range header is present
         if let Some(range_header) = urls_headers.1.get("range") {
             let range_str = range_header.to_str()?;
             if !range_str.starts_with("bytes=") {
@@ -109,30 +110,43 @@ async fn get_url(
     semaphore: Arc<Semaphore>,
 ) -> Result<Vec<u8>, GribError> {
     let _permit = semaphore.acquire_owned().await?;
-    let mut attempts = 0;
-    let bytes = loop {
-        attempts += 1;
-        if attempts > 1 {
-            info!("Layer {} failed retrying {}/3", idx, attempts);
-            // Backoff before retrying
-            sleep(Duration::from_secs(1)).await;
-        }
-        let req = request
-            .client
-            .request(Method::GET, &request.urls_headers[idx].0)
-            .headers(request.urls_headers[idx].1.clone())
-            .build()?;
-        match try_get_url(&request.client, req).await {
-            Ok(b) => break b,
-            Err(_) if attempts < 3 => continue,
-            Err(e) => return Err(e),
-        }
-    };
+    let req = request
+        .client
+        .request(Method::GET, &request.urls_headers[idx].0)
+        .headers(request.urls_headers[idx].1.clone())
+        .build()?;
+    let bytes = fetch_url_5_try(&request.client, req).await?;
     request.events.send(DownloadEvent::FinishedOne)?;
     Ok(bytes)
 }
 
-pub async fn try_get_url(
+pub async fn fetch_url_5_try(
+    client: &Client,
+    req: Request,
+) -> Result<Vec<u8>, GribError> {
+    let mut attempts = 0;
+    let bytes = loop {
+        attempts += 1;
+        if attempts > 1 {
+            debug!("Request {:?} failed retrying {}/5", req, attempts);
+            // Backoff before retrying
+            sleep(Duration::from_secs(1)).await;
+        }
+        match try_fetch_url(
+            client,
+            req.try_clone().expect("Failed to clone a Request"),
+        )
+        .await
+        {
+            Ok(b) => break b,
+            Err(_) if attempts < 5 => continue,
+            Err(e) => return Err(e),
+        }
+    };
+    Ok(bytes)
+}
+
+async fn try_fetch_url(
     client: &Client,
     req: Request,
 ) -> Result<Vec<u8>, GribError> {

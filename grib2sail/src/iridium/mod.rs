@@ -1,10 +1,10 @@
 mod config;
 
-use crate::core::GribError;
+use crate::core::{GribError, fetch_url_5_try};
 use config::{UrlType, get_req, parse_response};
 
-use log::{debug, info};
-use reqwest::{Client, Request};
+use log::info;
+use reqwest::Client;
 use std::net::SocketAddr;
 use tokio::time::{Duration, Instant, sleep};
 
@@ -21,7 +21,7 @@ pub async fn iridium_disconnect(socket: SocketAddr) -> Result<(), GribError> {
     let client = Client::new();
     info!("Closing iridium connection");
     let req = get_req(&client, UrlType::PerformTask, Some((socket, 0)))?;
-    let _ = send_request(&client, req).await?;
+    let _ = fetch_url_5_try(&client, req).await?;
 
     loop {
         let conn_stat = get_status(&client).await?[0];
@@ -51,7 +51,7 @@ async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
 
     info!("Signal strength ok, attempting connection");
     let req = get_req(&client, UrlType::PerformTask, Some((socket, 1)))?;
-    let _ = send_request(&client, req).await?;
+    let _ = fetch_url_5_try(&client, req).await?;
 
     info!("Waiting for connexion to be established");
     let start = Instant::now();
@@ -82,37 +82,8 @@ async fn iridium_try_connect(socket: SocketAddr) -> Result<(), GribError> {
 
 async fn get_status(client: &Client) -> Result<Vec<usize>, GribError> {
     let req = get_req(client, UrlType::GetStatus, None)?;
-    let resp = send_request(client, req).await?;
+    let resp = String::from_utf8(fetch_url_5_try(client, req).await?)?;
     let parsed = parse_response(resp, UrlType::GetStatus)?;
     let result = vec![parsed[0].parse::<usize>()?, parsed[1].parse::<usize>()?];
     Ok(result)
-}
-
-async fn send_request(
-    client: &Client,
-    req: Request,
-) -> Result<String, GribError> {
-    let mut attempts = 0;
-    Ok(loop {
-        attempts += 1;
-        if attempts > 1 {
-            debug!("{}/3 - Retrying request {:?} ", attempts, req);
-            // Backoff before retrying
-            sleep(Duration::from_secs(1)).await;
-        }
-        let req_clone = req.try_clone().ok_or_else(|| {
-            GribError::Generic("Request try_clone failed".to_string())
-        })?;
-        let resp = match client.execute(req_clone).await {
-            Ok(r) => r,
-            Err(_) if attempts < 3 => continue,
-            Err(e) => return Err(GribError::Reqwest(e)),
-        };
-        let resp = resp.error_for_status()?;
-        match resp.text().await {
-            Ok(t) => break t,
-            Err(_) if attempts < 3 => continue,
-            Err(e) => return Err(GribError::Reqwest(e)),
-        }
-    })
 }
