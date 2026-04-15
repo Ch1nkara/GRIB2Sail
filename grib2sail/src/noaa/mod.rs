@@ -35,7 +35,7 @@ async fn fetch_gfs_data(
     if grib.iridium {
         request.client = Client::builder()
             .resolve(NOAA_HOST, NOAA_SOCKET)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(120))
             .build()?;
     }
 
