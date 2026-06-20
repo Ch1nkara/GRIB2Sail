@@ -1,9 +1,6 @@
-mod crop;
 mod keyring;
 mod logger;
 mod updater;
-
-use crop::crop_grib;
 
 use grib2sail as g2s;
 
@@ -162,14 +159,6 @@ pub async fn start_cli() {
     match fs::write(outdir.join(&filename), &grib.content) {
         Ok(_) => info!("Successfully downloaded {}", filename),
         Err(e) => error!("Failed to write the grib file: {}", e),
-    }
-
-    // ECMWF download gives the whole earth. Crop it to match the user demand
-    if grib.model == g2s::Model::Ecmwf {
-        match crop_grib(&grib, outdir) {
-            Ok(()) => info!("Successfully cropped {}", filename),
-            Err(e) => error!("Failed to crop the grib file: {}", e),
-        }
     }
 }
 

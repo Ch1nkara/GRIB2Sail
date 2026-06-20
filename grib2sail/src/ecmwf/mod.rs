@@ -1,8 +1,16 @@
 mod config;
+mod helper_sect3;
+mod helper_sect4;
+mod helper_sect5;
+mod helper_sect7;
+mod unpack_crop;
 
 use config::{UrlType, get_headers, get_urls};
+use unpack_crop::unpack_crop;
 
-use crate::core::{DownloadEvent, Grib, GribError, ReqwestData, fetch_data};
+use crate::core::{
+    Component, DownloadEvent, Grib, GribError, ReqwestData, fetch_data,
+};
 
 use log::{debug, info, warn};
 
@@ -69,6 +77,20 @@ pub async fn download_ecmwf_grib(
     events.send(DownloadEvent::Started { total })?;
 
     grib.content = fetch_data(request).await?;
+
+    events.send(DownloadEvent::FinishedAll)?;
+
+    info!("Unpacking and cropping the grib file");
+    let mut nb_components = grib.components.len();
+    if grib.components.iter().any(|c| matches!(c, Component::Wind)) {
+        nb_components += 1;
+    }
+
+    let total = (nb_components * grib.days as usize * 24 / grib.step as usize)
+        + nb_components;
+    events.send(DownloadEvent::Started { total })?;
+
+    grib = unpack_crop(grib, events.clone()).await?;
 
     events.send(DownloadEvent::FinishedAll)?;
 
