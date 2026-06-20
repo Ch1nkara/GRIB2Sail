@@ -1,3 +1,12 @@
+## [0.7.2] - 2026-06-20
+
+### 🐛 Bug Fixes
+
+- Implement GribError from String
+
+### 🚜 Refactor
+
+- Get rid of external tool CDO
 ## [0.7.1] - 2026-04-15
 
 ### 🐛 Bug Fixes
