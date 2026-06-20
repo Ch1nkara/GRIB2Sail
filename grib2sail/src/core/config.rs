@@ -166,3 +166,8 @@ impl From<&str> for GribError {
         GribError::Generic(s.to_string())
     }
 }
+impl From<String> for GribError {
+    fn from(s: String) -> Self {
+        GribError::Generic(s)
+    }
+}
