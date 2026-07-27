@@ -1,0 +1,54 @@
+FROM rust:latest
+
+# Tell debian tools (apt...) to run in non-interactive mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Base packages
+RUN apt-get update && apt-get install -y \
+    git \
+    openssh-client \
+    curl \
+    unzip \
+    ripgrep \
+    fd-find \
+    pkg-config \
+    libssl-dev \
+    clang \
+    lldb \
+    build-essential \
+    ca-certificates \
+    # required for markdownlint-cli2
+    nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install IDE
+## 1. Install a recent neovim (packaged on is old)
+RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz \
+    && tar -C /opt -xzf nvim-linux-x86_64.tar.gz \
+    && ln -s /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim \
+    && rm nvim-linux-x86_64.tar.gz
+## 2. Install default LazyVim config
+RUN git clone --depth=1 \
+    https://github.com/LazyVim/starter \
+    /root/.config/nvim \
+ && rm -rf /root/.config/nvim/.git
+## 3. Add lazyvim extras
+RUN sed -i \
+    -e '/{ import = "plugins" }/i\    { import = "lazyvim.plugins.extras.lang.toml" },' \
+    -e '/{ import = "plugins" }/i\    { import = "lazyvim.plugins.extras.lang.markdown" },' \
+    -e '/{ import = "plugins" }/i\    { import = "lazyvim.plugins.extras.lang.rust" },' \
+    /root/.config/nvim/lua/config/lazy.lua
+## 4. Add additional config
+COPY .devcontainer/.config \
+    /root/.config
+## 5. Install more dependencies
+RUN npm install -g markdownlint-cli2
+
+# Rust tooling
+RUN rustup component add rustfmt clippy \
+ && rustup toolchain install stable \
+ && rustup component add rust-analyzer
+
+RUN cargo install cargo-edit bacon
+
+WORKDIR /workspace
