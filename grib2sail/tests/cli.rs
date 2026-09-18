@@ -140,19 +140,16 @@ fn cli_call(args: Vec<&str>) {
     for entry in entries {
         let entry = entry.expect("Failed to read entry");
         let path = entry.path();
-        if path.is_file() {
-            if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                if file_name.starts_with(args[1])
-                    && file_name.ends_with(".grib2")
-                {
-                    let metadata =
-                        fs::metadata(&path).expect("Failed to get metadata");
-                    assert!(metadata.len() > 0, "Grib file is empty\n{}", msg);
-                    fs::remove_file(&path).expect("Failed to delete file");
-                    found = true;
-                    break;
-                }
-            }
+        if path.is_file()
+            && let Some(file_name) = path.file_name().and_then(|n| n.to_str())
+            && file_name.starts_with(args[1])
+            && file_name.ends_with(".grib2")
+        {
+            let metadata = fs::metadata(&path).expect("Failed to get metadata");
+            assert!(metadata.len() > 0, "Grib file is empty\n{}", msg);
+            fs::remove_file(&path).expect("Failed to delete file");
+            found = true;
+            break;
         }
     }
     assert!(found, "No grib file written\n{}", msg);
