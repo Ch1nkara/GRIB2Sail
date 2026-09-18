@@ -66,15 +66,14 @@ account on meteofrance.fr. The procedure is as follow:
 
 ### ECMWF Model
 
-ECMWF model can only be downloaded for the entire earth surface, not just a
-specific area. This program will try to call `cdo` binary (Climate Data
-Operator, a tool for manipulating grib files) in order to reshape them.
-If cdo in not installed on the machine, the full grib file will be provided.
+ECMWF open data is published as worldwide GRIB files. GRIB2Sail downloads
+only the requested layers, then unpacks and crops them to the area given
+with `--lat` and `--lon`. No extra tool is required.
 
-Please note that the full earth grib file can be unreadable by some third
-party softwares such as OpenCPN.
-
-To install `cdo` on a Ubuntu machine, use the command `sudo apt install cdo`.
+Unlike the other models, the download is hundreds of MB rather than KB,
+because ECMWF publishes global files. That limitation is on their side
+and cannot be optimized in GRIB2Sail. After cropping, the resulting
+GRIB is only a few KB.
 
 ## Usage
 
