@@ -115,24 +115,13 @@ grib2sail-cli --self-update
 
 ## Dev
 
-- Create the devcontainer with
-`podman build -f .devcontainer/Containerfile -t rust-grib2sail .`
-- Run it with:
+The repo is meant to be opened in a [Dev Container](https://containers.dev/).
 
-  ```sh
-  podman run -dit --name rust-grib2sail-container \
-    -v "$(pwd)":/workspaces/project:Z \
-    -v ~/.gitconfig:/root/.gitconfig:ro \
-    -v ~/.bashrc:/root/.bashrc:ro \
-    -v $SSH_AUTH_SOCK:/ssh-agent \
-    -e SSH_AUTH_SOCK=/ssh-agent \
-    -w /workspaces/project \
-    rust-grib2sail bash
-  ```
-
-- Enter it with `podman exec -it rust-grib2sail-container bash`
-- Once inside open IDE with `nvim .` and compile from a terminal within with
-`cargo build`
+1. Install Docker, or Podman with a Docker-compatible socket.
+2. Install **Dev Containers** in the IDE (VSCode for example)
+3. [VSCDE] Open this repository, then Command Palette →
+   **Dev Containers: Reopen in Container**.
+4. In a terminal of that window, run `cargo build`.
 
 ## Uninstall
 

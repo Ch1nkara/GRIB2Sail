@@ -1,0 +1,35 @@
+{
+  "name": "grib2sail",
+  "build": {
+    "dockerfile": "Containerfile",
+    "context": ".."
+  },
+  "runArgs": ["--userns=keep-id"],
+  "containerUser": "dev",
+  "remoteUser": "dev",
+  "updateRemoteUserUID": false,
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,relabel=shared",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "capAdd": ["SYS_PTRACE"],
+  "securityOpt": ["seccomp=unconfined"],
+  "containerEnv": {
+    "CARGO_TERM_COLOR": "always",
+    "HOME": "/home/dev"
+  },
+  "mounts": [
+    "source=grib2sail-dev-home,target=/home/dev,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb"
+      ],
+      "settings": {
+        "rust-analyzer.server.path": "rust-analyzer",
+        "rust-analyzer.check.command": "clippy"
+      }
+    }
+  }
+}
