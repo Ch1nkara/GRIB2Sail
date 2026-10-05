@@ -57,7 +57,8 @@ struct Cli {
     self_update: bool,
 }
 
-pub async fn start_cli() {
+#[tokio::main]
+async fn main() {
     let args = Cli::parse();
 
     let res = if args.debug {

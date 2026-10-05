@@ -1,36 +1,32 @@
 [package]
-name = "grib2sail"
-description = "Grib files downloader for sailing purposes"
+name = "grib2sail-cli"
+description = "CLI wrapper for the grib2sail downloader"
 version = "0.7.2"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Ch1nkara/GRIB2Sail"
 readme = "../README.md"
 
-[lib]
-name = "grib2sail"
-path = "src/lib.rs"
+[[bin]]
+name = "grib2sail-cli"
+path = "src/main.rs"
 
 [dependencies]
+grib2sail = { path = "../grib2sail" }
 chrono = "0.4.43"
 clap = { version = "4.5.57", features = ["derive"] }
+colored = "3.1.1"
+indicatif = "0.18.3"
 keyring = { version = "3.6.3", features = [
   "sync-secret-service", "vendored", "crypto-rust",
   "windows-native",
   "apple-native"
 ] }
-log = { version = "0.4.29", features = ["std"] }
-regex = "1.12.3"
-reqwest = { version = "0.13.2", features = ["json"] }
-rust-aec = "0.1.1"
+log = "0.4.29"
+once_cell = "1.21.3"
+reqwest = "0.13.2"
 self_update = { version = "0.42.0", features = [
   "archive-tar", "compression-flate2",
   "archive-zip", "compression-zip-deflate", "compression-zip-bzip2"
 ] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-strum = "0.27.2"
-strum_macros = "0.27.2"
-thiserror = "2.0.18"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
-
