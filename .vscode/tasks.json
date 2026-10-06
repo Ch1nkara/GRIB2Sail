@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "cargo build workspace",
+      "type": "shell",
+      "command": "cargo build --workspace",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "cargo test workspace",
+      "type": "shell",
+      "command": "cargo test --workspace",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "cargo check grib2sail",
+      "type": "shell",
+      "command": "cargo check -p grib2sail",
+      "problemMatcher": []
+    },
+    {
+      "label": "cargo check grib2sail-cli",
+      "type": "shell",
+      "command": "cargo check -p grib2sail-cli",
+      "problemMatcher": []
+    }
+  ]
+}

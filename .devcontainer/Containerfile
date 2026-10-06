@@ -1,17 +1,14 @@
-FROM rust:bookworm
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    CARGO_TERM_COLOR=always
+FROM rust:latest
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        pkg-config \
-        libdbus-1-dev \
-        clang \
-        lldb \
-    && rm -rf /var/lib/apt/lists/* \
-    && rustup component add rustfmt clippy rust-analyzer \
-    && cargo install bacon \
-    && chmod -R a+rwX /usr/local/cargo /usr/local/rustup
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    git \
+  && rustup component add rustfmt clippy \
+  && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -mU -s /bin/bash dev
-USER dev
+RUN useradd -ms /bin/bash vscode
+USER vscode
+WORKDIR /workspaces/Grib2Sail
+CMD ["sleep", "infinity"]
