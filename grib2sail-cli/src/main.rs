@@ -23,11 +23,12 @@ struct Cli {
     days: u32,
 
     #[arg(
-        long, short,
-        value_parser = clap::value_parser!(g2s::Component),
+        long,
+        short,
+        value_enum,
         value_delimiter = ',',
-        default_value = "wind,wind-gust")
-    ]
+        default_value = "wind,wind-gust"
+    )]
     components: Vec<g2s::Component>,
 
     #[arg(

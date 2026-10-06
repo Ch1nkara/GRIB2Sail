@@ -35,8 +35,7 @@ pub struct Grib {
     pub iridium: bool,
 }
 
-#[derive(Clone, ValueEnum, Debug, Display, PartialEq)]
-#[clap(rename_all = "kebab-case")]
+#[derive(Clone, Debug, Display, PartialEq, ValueEnum)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Model {
     #[clap(help = "Res 1km, Between 41°N and 51.5°N / -6°W and 10.5°E")]
@@ -73,7 +72,7 @@ impl Model {
     }
 }
 
-#[derive(Copy, Clone, ValueEnum, Debug, Display)]
+#[derive(Copy, Clone, Debug, Display, ValueEnum)]
 #[repr(usize)]
 pub enum Step {
     #[clap(name = "1h")]
@@ -90,8 +89,8 @@ pub enum Step {
     H12 = 12,
 }
 
-#[derive(Clone, ValueEnum, Debug)]
-#[clap(rename_all = "kebab-case")]
+#[derive(Clone, Debug, Display, ValueEnum)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Component {
     Wind,
     WindGust,
