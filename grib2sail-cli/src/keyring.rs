@@ -1,5 +1,6 @@
 use grib2sail as g2s;
 
+use anyhow::{Result, anyhow};
 use keyring::{Entry, Error};
 use log::{error, info, warn};
 use reqwest::Client;
@@ -8,7 +9,7 @@ use tokio::sync::mpsc::unbounded_channel;
 
 static ID: &str = "G2S_METEOFRANCE_BEARER";
 
-pub async fn get_secret(model: &g2s::Model) -> Result<String, g2s::GribError> {
+pub async fn get_secret(model: &g2s::Model) -> Result<String> {
     let id = match model.to_string() {
         s if s.starts_with("arome") || s.starts_with("arpege") => ID,
         _ => return Ok(String::new()),
@@ -21,12 +22,12 @@ pub async fn get_secret(model: &g2s::Model) -> Result<String, g2s::GribError> {
             msg.push_str(" available, install one or use the '");
             msg.push_str(id);
             msg.push_str("' environement variable");
-            Err(g2s::GribError::Generic(msg))
+            Err(anyhow!(msg))
         }
     }
 }
 
-async fn get_password(id: &str) -> Result<String, g2s::GribError> {
+async fn get_password(id: &str) -> Result<String> {
     if let Ok(env_val) = std::env::var(id) {
         return Ok(env_val);
     }
@@ -65,11 +66,11 @@ async fn get_password(id: &str) -> Result<String, g2s::GribError> {
             info!("API subscription saved locally");
             Ok(secret.to_string())
         }
-        Err(e) => Err(g2s::GribError::Keyring(e)),
+        Err(e) => Err(e.into()),
     }
 }
 
-pub fn delete_secrets() -> Result<(), g2s::GribError> {
+pub fn delete_secrets() -> Result<()> {
     let entry = Entry::new("grib2sail", ID)?;
     entry.delete_credential()?;
     info!("Entry {} deleted from keyring", ID);

@@ -12,6 +12,7 @@ name = "grib2sail-cli"
 path = "src/main.rs"
 
 [dependencies]
+anyhow = "1.0.100"
 grib2sail = { path = "../grib2sail" }
 chrono = "0.4.43"
 clap = { version = "4.5.57", features = ["derive"] }

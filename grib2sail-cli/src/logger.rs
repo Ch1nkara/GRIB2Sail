@@ -1,4 +1,4 @@
-use grib2sail as g2s;
+use anyhow::{Result, anyhow};
 
 use chrono::Local;
 use colored::*;
@@ -64,49 +64,41 @@ fn write_std(msg: String) {
     let _ = writeln!(&mut stdout(), "{}", msg);
 }
 
-pub fn set_progress_bar(len: usize) -> Result<(), g2s::GribError> {
+pub fn set_progress_bar(len: usize) -> Result<()> {
     let pb = ProgressBar::new(len as u64);
     let mutex = PROGRESS_BAR.get_or_init(|| Mutex::new(None));
-    let mut guard = mutex.lock().map_err(|e| {
-        g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
-    })?;
+    let mut guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
     *guard = Some(pb);
     Ok(())
 }
 
-pub fn increment_progress_bar(inc: u64) -> Result<(), g2s::GribError> {
+pub fn increment_progress_bar(inc: u64) -> Result<()> {
     let mutex = PROGRESS_BAR
         .get()
-        .ok_or_else(|| g2s::GribError::from("progress bar not initialized"))?;
-    let guard = mutex.lock().map_err(|e| {
-        g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
-    })?;
-    let pb = guard.as_ref().ok_or_else(|| {
-        g2s::GribError::from("progress bar inside mutex is None")
-    })?;
+        .ok_or_else(|| anyhow!("progress bar not initialized"))?;
+    let guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
+    let pb = guard.as_ref().ok_or_else(|| anyhow!("progress bar inside mutex is None"))?;
     pb.inc(inc);
     Ok(())
 }
 
-pub fn clear_progress_bar() -> Result<(), g2s::GribError> {
+pub fn clear_progress_bar() -> Result<()> {
     let mutex = PROGRESS_BAR
         .get()
-        .ok_or_else(|| g2s::GribError::from("progress bar not initialized"))?;
-    let mut guard = mutex.lock().map_err(|e| {
-        g2s::GribError::Generic(format!("Mutex poisoned: {}", e))
-    })?;
+        .ok_or_else(|| anyhow!("progress bar not initialized"))?;
+    let mut guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
     *guard = None;
     Ok(())
 }
 
-pub fn init(level_filter: LevelFilter) -> Result<(), g2s::GribError> {
+pub fn init(level_filter: LevelFilter) -> Result<()> {
     let logger = GribLogger { level_filter };
     LOGGER
         .set(logger)
-        .map_err(|_| g2s::GribError::from("Log setting failed"))?;
+        .map_err(|_| anyhow!("Log setting failed"))?;
     let logger_ref = LOGGER
         .get()
-        .ok_or_else(|| g2s::GribError::from("Log getting failed"))?;
+        .ok_or_else(|| anyhow!("Log getting failed"))?;
     set_logger(logger_ref)?;
     set_max_level(level_filter);
     Ok(())

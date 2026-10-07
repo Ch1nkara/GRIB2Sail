@@ -5,6 +5,7 @@ mod updater;
 use grib2sail as g2s;
 
 use clap::{ArgAction, Parser};
+use anyhow::Result;
 use log::{LevelFilter, debug, error, info};
 use std::{fs, path::Path, process};
 use tokio::{spawn, sync::mpsc::unbounded_channel};
@@ -169,13 +170,13 @@ fn error_exit(msg: &str) -> ! {
     process::exit(1);
 }
 
-fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
+fn parse_coords(coord_str: &str) -> Result<Vec<f64>> {
     let coord: Vec<&str> = coord_str.split(':').collect();
     if coord.len() != 2 {
         let mut msg = String::from("Each --lat and --lon must contain");
         msg.push_str(" exactly two coordinates separated by a comma.");
         msg.push_str(" Ex: --lat 5.55:6.05");
-        return Err(g2s::GribError::InvalidConf(msg));
+        return Err(anyhow::anyhow!(msg));
     }
     let mut result = Vec::with_capacity(2);
     for c in coord {
@@ -184,7 +185,7 @@ fn parse_coords(coord_str: &str) -> Result<Vec<f64>, g2s::GribError> {
             Err(_) => {
                 let mut msg = String::from("Each --lat and --lon must be");
                 msg.push_str(" valid numbers. Ex: --lat 5.5:6.3");
-                return Err(g2s::GribError::InvalidConf(msg));
+                return Err(anyhow::anyhow!(msg));
             }
         }
     }

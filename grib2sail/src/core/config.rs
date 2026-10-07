@@ -1,12 +1,10 @@
 use clap::ValueEnum;
-use keyring::Error as KeyringError;
 use log::SetLoggerError;
 use regex::Error as RegError;
 use reqwest::{
     Client, Error as ReqError,
     header::{HeaderMap, InvalidHeaderValue, ToStrError},
 };
-use self_update::errors::Error as SelfUpdateError;
 use std::string::FromUtf8Error;
 use std::{io::Error as IoError, num::ParseIntError};
 use strum_macros::Display;
@@ -142,10 +140,10 @@ pub enum GribError {
     Io(#[from] IoError),
 
     #[error("Keyring error: {0}")]
-    Keyring(#[from] KeyringError),
+    Keyring(String),
 
     #[error("Self-Update error: {0}")]
-    SelfUpdate(#[from] SelfUpdateError),
+    SelfUpdate(String),
 
     #[error("Regex error: {0}")]
     Regex(#[from] RegError),
