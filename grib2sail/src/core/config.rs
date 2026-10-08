@@ -30,7 +30,6 @@ pub struct Grib {
     pub content: Vec<u8>,
     pub run: String,
     pub secret: String,
-    pub iridium: bool,
 }
 
 #[derive(Clone, Debug, Display, PartialEq, ValueEnum)]
@@ -62,12 +61,6 @@ pub enum Model {
     Gfs100,
     #[clap(help = "ECMWF 0,25° - 22km, worldwide")]
     Ecmwf,
-}
-
-impl Model {
-    pub fn iridium_compatible(&self) -> bool {
-        matches!(self, Model::Gfs025 | Model::Gfs050 | Model::Gfs100)
-    }
 }
 
 #[derive(Copy, Clone, Debug, Display, ValueEnum)]

@@ -3,11 +3,8 @@ use crate::core::{Component, Grib, Model};
 use chrono::{Duration, Local};
 use log::warn;
 use reqwest::header::HeaderMap;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub static NOAA_HOST: &str = "nomads.ncep.noaa.gov";
-pub static NOAA_SOCKET: SocketAddr =
-    SocketAddr::new(IpAddr::V4(Ipv4Addr::new(23, 223, 194, 197)), 443);
 
 pub enum UrlType {
     CheckAvailability,

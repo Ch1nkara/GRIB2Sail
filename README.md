@@ -99,11 +99,6 @@ The downloaded grib file will be present in the working directory named `arome_a
 
 It can now be imported in a navigation software such as OpenCPN
 
-## Iridium-Go
-
-NOAA models (gfs025, gfs050, gfs100) can be downloaded via Iridium-Go by
-using the flag `--iridium`
-
 ## Update
 
 The cli can be updated without going through the installation process by running:

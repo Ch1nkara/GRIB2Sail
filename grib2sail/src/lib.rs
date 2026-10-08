@@ -1,6 +1,5 @@
 mod core;
 mod ecmwf;
-mod iridium;
 mod meteofrance;
 mod noaa;
 

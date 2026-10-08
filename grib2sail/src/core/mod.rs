@@ -31,11 +31,6 @@ pub async fn download_grib(
         urls_headers: Vec::new(),
     };
 
-    if grib.iridium && !grib.model.iridium_compatible() {
-        let msg = String::from("This model is not compatible with iridium");
-        return Err(GribError::InvalidConf(msg));
-    }
-
     if grib.model.to_string().starts_with("arome")
         || grib.model.to_string().starts_with("arpege")
     {
