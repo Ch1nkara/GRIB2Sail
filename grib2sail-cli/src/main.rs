@@ -4,8 +4,8 @@ mod updater;
 
 use grib2sail as g2s;
 
-use clap::{ArgAction, Parser};
 use anyhow::Result;
+use clap::{ArgAction, Parser};
 use log::{LevelFilter, debug, error, info};
 use std::{fs, path::Path, process};
 use tokio::{spawn, sync::mpsc::unbounded_channel};
@@ -106,8 +106,8 @@ async fn main() {
     };
 
     let grib = g2s::Grib {
-        model: args.model,
-        step: args.step,
+        model: args.model.clone(),
+        step: args.step.clone(),
         days: args.days,
         latitude_min: lat.iter().cloned().fold(f64::INFINITY, f64::min),
         latitude_max: lat.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
@@ -121,6 +121,16 @@ async fn main() {
     };
     debug!("Grib generated is: {:?}", grib);
 
+    let (grib_content, run) = get_grib_content(grib).await;
+    let filename = format!("{}_{}_{}.grib2", args.model, run, args.step,);
+    match fs::write(outdir.join(&filename), grib_content) {
+        Ok(_) => info!("Successfully downloaded {}", filename),
+        Err(e) => error!("Failed to write the grib file: {}", e),
+    }
+}
+
+// Return the grib content along with the run it came from
+async fn get_grib_content(grib: g2s::Grib) -> (Vec<u8>, String) {
     let (tx, mut rx) = unbounded_channel();
     let handle = spawn(async move { g2s::download_grib(grib, tx).await });
 
@@ -157,12 +167,7 @@ async fn main() {
     if let Err(e) = logger::clear_progress_bar() {
         error_exit(&format!("Failed to clear progress bar: {}", e));
     }
-
-    let filename = format!("{}_{}_{}.grib2", grib.model, grib.run, grib.step,);
-    match fs::write(outdir.join(&filename), &grib.content) {
-        Ok(_) => info!("Successfully downloaded {}", filename),
-        Err(e) => error!("Failed to write the grib file: {}", e),
-    }
+    (grib.content, grib.run)
 }
 
 fn error_exit(msg: &str) -> ! {

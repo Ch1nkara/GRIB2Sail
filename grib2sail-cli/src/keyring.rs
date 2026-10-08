@@ -41,6 +41,7 @@ async fn get_password(id: &str) -> Result<String> {
             msg.push_str(" See documentation for exact procedure.");
             warn!("{}", msg);
 
+            // TODO refacto get_token to not be dependent on g2s::ReqwestData
             let (tx, _rx) = unbounded_channel();
             let request = g2s::ReqwestData {
                 client: Client::new(),

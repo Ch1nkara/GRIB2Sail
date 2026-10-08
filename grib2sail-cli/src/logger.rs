@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 
 use chrono::Local;
 use colored::*;
@@ -25,6 +25,7 @@ impl log::Log for GribLogger {
             return;
         }
 
+        // Set the formating used for messages logs
         let ts = Local::now().format("%Y-%m-%d %H:%M:%S");
         let level = match record.level() {
             Level::Error => record.level().to_string().red(),
@@ -35,9 +36,12 @@ impl log::Log for GribLogger {
         };
         let msg = format!("{} [{}] {}", ts, level, record.args());
 
+        // Select standard output or error output depending on level
         match record.level() {
             Level::Error => write_err(msg),
             _ => {
+                // Use the progress bar printing method if present
+                // Default to standard print otherwise
                 if let Some(mutex) = PROGRESS_BAR.get() {
                     match mutex.lock() {
                         Ok(guard) => match &*guard {
@@ -67,26 +71,26 @@ fn write_std(msg: String) {
 pub fn set_progress_bar(len: usize) -> Result<()> {
     let pb = ProgressBar::new(len as u64);
     let mutex = PROGRESS_BAR.get_or_init(|| Mutex::new(None));
-    let mut guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
+    let mut guard =
+        mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
     *guard = Some(pb);
     Ok(())
 }
 
 pub fn increment_progress_bar(inc: u64) -> Result<()> {
-    let mutex = PROGRESS_BAR
-        .get()
-        .ok_or_else(|| anyhow!("progress bar not initialized"))?;
+    let mutex = PROGRESS_BAR.get().context("Progress bar not initialized")?;
     let guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
-    let pb = guard.as_ref().ok_or_else(|| anyhow!("progress bar inside mutex is None"))?;
+    let pb = guard
+        .as_ref()
+        .context("progress bar inside mutex is None")?;
     pb.inc(inc);
     Ok(())
 }
 
 pub fn clear_progress_bar() -> Result<()> {
-    let mutex = PROGRESS_BAR
-        .get()
-        .ok_or_else(|| anyhow!("progress bar not initialized"))?;
-    let mut guard = mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
+    let mutex = PROGRESS_BAR.get().context("Progress bar not initialized")?;
+    let mut guard =
+        mutex.lock().map_err(|e| anyhow!("Mutex poisoned: {}", e))?;
     *guard = None;
     Ok(())
 }
@@ -96,9 +100,7 @@ pub fn init(level_filter: LevelFilter) -> Result<()> {
     LOGGER
         .set(logger)
         .map_err(|_| anyhow!("Log setting failed"))?;
-    let logger_ref = LOGGER
-        .get()
-        .ok_or_else(|| anyhow!("Log getting failed"))?;
+    let logger_ref = LOGGER.get().context("Log getting failed")?;
     set_logger(logger_ref)?;
     set_max_level(level_filter);
     Ok(())

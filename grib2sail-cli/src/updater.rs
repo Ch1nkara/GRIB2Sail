@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use log::info;
 use self_update::{backends::github, get_target};
 
