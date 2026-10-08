@@ -6,7 +6,8 @@ use crate::core::{
     fetch_url_5_try,
 };
 use config::{UrlType, WIND_V, get_urls};
-pub use token::get_token;
+use token::get_token;
+pub use token::is_secret_valid;
 
 use log::{debug, info, warn};
 use regex::Regex;
@@ -20,7 +21,7 @@ pub async fn download_arome_arpege_grib(
     mut grib: Grib,
     mut request: ReqwestData,
 ) -> Result<Grib, GribError> {
-    let token = get_token(&grib.secret, &request).await?;
+    let token = get_token(&grib.secret).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, bearer_header);

@@ -1,7 +1,8 @@
 use super::config;
-use crate::core::{GribError, ReqwestData};
+use crate::core::GribError;
 
 use log::{debug, info};
+use reqwest::Client;
 use reqwest::header::{AUTHORIZATION, HeaderValue};
 use serde::Deserialize;
 use serde_json::json;
@@ -15,14 +16,12 @@ struct TokenResponse {
     //expires_in: usize,
 }
 
-pub async fn get_token(
-    secret: &String,
-    request: &ReqwestData,
-) -> Result<String, GribError> {
+pub async fn get_token(secret: &str) -> Result<String, GribError> {
     info!("Authenticating to MeteoFrance");
 
     let url_token = config::TOKEN_URL;
     let body = json!({"grant_type": "client_credentials"});
+    let client = Client::new();
     let header = match HeaderValue::from_str(&format!("Basic {}", secret)) {
         Ok(head) => head,
         Err(e) => {
@@ -33,8 +32,7 @@ pub async fn get_token(
         }
     };
 
-    let response = request
-        .client
+    let response = client
         .post(url_token)
         .header(AUTHORIZATION, header)
         .json(&body)
@@ -56,4 +54,8 @@ pub async fn get_token(
 
     debug!("Got token: {:?}", token);
     Ok(token.access_token)
+}
+
+pub async fn is_secret_valid(secret: &str) -> bool {
+    get_token(secret).await.is_ok()
 }

@@ -3,9 +3,7 @@ use grib2sail as g2s;
 use anyhow::{Result, anyhow};
 use keyring::{Entry, Error};
 use log::{error, info, warn};
-use reqwest::Client;
 use std::io::stdin;
-use tokio::sync::mpsc::unbounded_channel;
 
 static ID: &str = "G2S_METEOFRANCE_BEARER";
 
@@ -41,13 +39,6 @@ async fn get_password(id: &str) -> Result<String> {
             msg.push_str(" See documentation for exact procedure.");
             warn!("{}", msg);
 
-            // TODO refacto get_token to not be dependent on g2s::ReqwestData
-            let (tx, _rx) = unbounded_channel();
-            let request = g2s::ReqwestData {
-                client: Client::new(),
-                events: tx,
-                urls_headers: Vec::new(),
-            };
             let mut secret = String::new();
 
             loop {
@@ -57,7 +48,7 @@ async fn get_password(id: &str) -> Result<String> {
                 stdin().read_line(&mut secret)?;
                 secret = secret.trim_end().to_string();
                 info!("Verifying the provided subscription...");
-                if g2s::get_token(&secret, &request).await.is_ok() {
+                if g2s::is_secret_valid(&secret).await {
                     break;
                 }
                 error!("The API subbscription is not valid, try again");
