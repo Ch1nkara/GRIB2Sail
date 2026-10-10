@@ -4,7 +4,6 @@ mod meteofrance;
 mod noaa;
 
 pub use core::{
-    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step,
-    download_grib,
+    Component, DownloadContext, DownloadEvent, Grib, Model, Step, download_grib,
 };
 pub use meteofrance::is_secret_valid;

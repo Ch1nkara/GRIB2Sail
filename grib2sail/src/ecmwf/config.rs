@@ -11,7 +11,11 @@ pub enum UrlType {
     GribData,
 }
 
-pub fn get_urls(grib: &Grib, url_type: UrlType) -> Vec<(String, HeaderMap)> {
+pub fn get_urls(
+    grib: &Grib,
+    url_type: UrlType,
+    run: &str,
+) -> Vec<(String, HeaderMap)> {
     let mut urls_headers = Vec::new();
 
     let url = format!("https://{}/", ECMWF_HOST);
@@ -48,8 +52,8 @@ pub fn get_urls(grib: &Grib, url_type: UrlType) -> Vec<(String, HeaderMap)> {
             }
         }
         UrlType::GribData => {
-            let run_d = &grib.run[..8];
-            let run_h = &grib.run[9..11];
+            let run_d = &run[..8];
+            let run_h = &run[9..11];
             debug!("date is {} and hour is {}", run_d, run_h);
             let dataset = if run_h == "18" || run_h == "06" {
                 "scda"

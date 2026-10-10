@@ -2,7 +2,7 @@ mod config;
 mod token;
 
 use crate::core::{
-    DownloadEvent, Grib, GribError, Model, ReqwestData, fetch_data,
+    DownloadContext, DownloadEvent, Grib, GribError, Model, fetch_data,
     fetch_url_5_try,
 };
 use config::{UrlType, WIND_V, get_urls};
@@ -17,11 +17,16 @@ use reqwest::{
 };
 use std::{thread::sleep, time::Duration};
 
-pub async fn download_arome_arpege_grib(
+pub async fn download_grib(
     mut grib: Grib,
-    mut request: ReqwestData,
-) -> Result<Grib, GribError> {
-    let token = get_token(&grib.secret).await?;
+    mut ctx: DownloadContext,
+) -> Result<(Vec<u8>, String), GribError> {
+    let auth = ctx.auth.clone().ok_or_else(|| {
+        GribError::InvalidConf(
+            "MeteoFrance authentication is required".to_string(),
+        )
+    })?;
+    let token = get_token(&auth).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, bearer_header);
@@ -48,7 +53,7 @@ pub async fn download_arome_arpege_grib(
     }
 
     info!("Finding the latest available forecast");
-    request.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
+    ctx.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
     // List the forecasts availables, filter the wind ones and extract
     // the last 2 run dates from the last two lines
     let mut attempts = 1;
@@ -58,13 +63,13 @@ pub async fn download_arome_arpege_grib(
         if attempts > 3 {
             return Err("Unable to find the latest availables forecasts".into());
         }
-        let req = request
+        let req = ctx
             .client
-            .request(Method::GET, &request.urls_headers[0].0)
+            .request(Method::GET, &ctx.urls_headers[0].0)
             .headers(headers.clone())
             .build()?;
         runs_available =
-            String::from_utf8(fetch_url_5_try(&request.client, req).await?)?;
+            String::from_utf8(fetch_url_5_try(&ctx.client, req).await?)?;
         wind_runs = runs_available
             .lines()
             .filter(|line| line.contains(WIND_V))
@@ -80,14 +85,14 @@ pub async fn download_arome_arpege_grib(
     debug!("last2run: {:?}", last2run);
 
     let mut run = &last2run[0];
-    request.urls_headers = get_urls(&grib, UrlType::GribData, run);
+    ctx.urls_headers = get_urls(&grib, UrlType::GribData, run);
     //debug!("Urls generated are: {:?}", layer_urls);
 
     // If the last run does not have all the required layers yet,
     // fall back to the previous one
-    if request
+    if ctx
         .client
-        .get(&request.urls_headers[request.urls_headers.len() - 1].0)
+        .get(&ctx.urls_headers[ctx.urls_headers.len() - 1].0)
         .headers(headers.clone())
         .send()
         .await?
@@ -95,30 +100,31 @@ pub async fn download_arome_arpege_grib(
         .is_err()
     {
         run = &last2run[1];
-        request.urls_headers = get_urls(&grib, UrlType::GribData, run);
+        ctx.urls_headers = get_urls(&grib, UrlType::GribData, run);
     }
 
     info!("Downloading the grib layers");
-    let total = request.urls_headers.len();
-    let events = request.events.clone();
+    let total = ctx.urls_headers.len();
+    let events = ctx.events.clone();
 
     // Add token header to every request url
-    for (_, h) in request.urls_headers.iter_mut() {
+    for (_, h) in ctx.urls_headers.iter_mut() {
         *h = headers.clone();
     }
 
     // Change fomatting from 1970-01-01T00.00.00Z to 19700101-00z
-    grib.run = run
+    let mut grib_run: String = run
         .replace("-", "")
         .replace("T", "-")
         .chars()
         .take(11)
-        .collect::<String>();
-    grib.run.push('z');
+        .collect();
+    grib_run.push('z');
 
+    let mut content = Vec::new();
     events.send(DownloadEvent::Started { total })?;
     if total < 100 {
-        grib.content = fetch_data(request).await?;
+        content = fetch_data(ctx).await?;
     } else {
         let mut msg = String::from("The requested grib has ");
         msg.push_str(&total.to_string());
@@ -129,11 +135,11 @@ pub async fn download_arome_arpege_grib(
         msg.push_str(" layers by increasing the step or reducing the number");
         msg.push_str(" of components");
         warn!("{}", msg);
-        let chunks = request.urls_headers.chunks(100).collect::<Vec<_>>();
+        let chunks = ctx.urls_headers.chunks(100).collect::<Vec<_>>();
         for (i, chunk) in chunks.iter().enumerate() {
-            let mut req = request.clone();
+            let mut req = ctx.clone();
             req.urls_headers = chunk.to_vec();
-            grib.content.append(&mut fetch_data(req).await?);
+            content.append(&mut fetch_data(req).await?);
             if i != chunks.len() - 1 {
                 info!("Sleeping 1 minute...");
                 sleep(Duration::from_mins(1));
@@ -142,7 +148,7 @@ pub async fn download_arome_arpege_grib(
     }
 
     events.send(DownloadEvent::FinishedAll)?;
-    Ok(grib)
+    Ok((content, grib_run))
 }
 
 fn extract_date(line: &str) -> Result<String, GribError> {

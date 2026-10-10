@@ -9,43 +9,44 @@ use config::{UrlType, get_headers, get_urls};
 use unpack_crop::unpack_crop;
 
 use crate::core::{
-    Component, DownloadEvent, Grib, GribError, ReqwestData, fetch_data,
+    Component, DownloadContext, DownloadEvent, Grib, GribError, fetch_data,
 };
 
 use log::{debug, info, warn};
 
-pub async fn download_ecmwf_grib(
+pub async fn download_grib(
     mut grib: Grib,
-    mut request: ReqwestData,
-) -> Result<Grib, GribError> {
+    mut ctx: DownloadContext,
+) -> Result<(Vec<u8>, String), GribError> {
     if grib.days > 15 {
         warn!("ECMWF forecast is limited to 15 days max");
         grib.days = 15;
     }
 
     info!("Finding the latest available forecast");
-    request.urls_headers = get_urls(&grib, UrlType::CheckAvailability);
+    ctx.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
     let mut index = 0;
+    let run;
     loop {
-        if index >= request.urls_headers.len() {
+        if index >= ctx.urls_headers.len() {
             return Err("Couldn't find latest available forecast".into());
         }
-        let url = &request.urls_headers[index].0;
-        let resp = request.client.head(url).send().await?.error_for_status();
+        let url = &ctx.urls_headers[index].0;
+        let resp = ctx.client.head(url).send().await?.error_for_status();
 
         if resp.is_ok() {
-            grib.run = format!("{}-{}z", &url[54..62], &url[63..65]);
-            debug!("found run: {}", grib.run);
+            run = format!("{}-{}z", &url[54..62], &url[63..65]);
+            debug!("found run: {}", run);
             break;
         }
         index += 1;
     }
 
     info!("Fetching metadata");
-    request.urls_headers = get_urls(&grib, UrlType::GribData);
+    ctx.urls_headers = get_urls(&grib, UrlType::GribData, &run);
     // get the range bytes header for all requested layers
-    for (url, h) in request.urls_headers.iter_mut() {
-        let index = request
+    for (url, h) in ctx.urls_headers.iter_mut() {
+        let index = ctx
             .client
             .get(url.replace(".grib2", ".index"))
             .send()
@@ -57,7 +58,7 @@ pub async fn download_ecmwf_grib(
     }
 
     info!("Downloading the grib layers");
-    let nb_range = request
+    let nb_range = ctx
         .urls_headers
         .first()
         .ok_or("Unexpected empty urls_headers")?
@@ -70,13 +71,13 @@ pub async fn download_ecmwf_grib(
         .count()
         + 1;
 
-    let total = request.urls_headers.len() * nb_range;
+    let total = ctx.urls_headers.len() * nb_range;
 
-    let events = request.events.clone();
+    let events = ctx.events.clone();
 
     events.send(DownloadEvent::Started { total })?;
 
-    grib.content = fetch_data(request).await?;
+    let content = fetch_data(ctx).await?;
 
     events.send(DownloadEvent::FinishedAll)?;
 
@@ -90,9 +91,9 @@ pub async fn download_ecmwf_grib(
         + nb_components;
     events.send(DownloadEvent::Started { total })?;
 
-    grib = unpack_crop(grib, events.clone()).await?;
+    let content = unpack_crop(&grib, content, events.clone()).await?;
 
     events.send(DownloadEvent::FinishedAll)?;
 
-    Ok(grib)
+    Ok((content, run))
 }

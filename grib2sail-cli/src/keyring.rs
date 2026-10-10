@@ -7,13 +7,13 @@ use std::io::stdin;
 
 static ID: &str = "G2S_METEOFRANCE_BEARER";
 
-pub async fn get_secret(model: &g2s::Model) -> Result<String> {
+pub async fn get_secret(model: &g2s::Model) -> Result<Option<String>> {
     let id = match model.to_string() {
         s if s.starts_with("arome") || s.starts_with("arpege") => ID,
-        _ => return Ok(String::new()),
+        _ => return Ok(None),
     };
     match get_password(id).await {
-        Ok(s) => Ok(s),
+        Ok(s) => Ok(Some(s)),
         Err(e) => {
             error!("{}", e);
             let mut msg = String::from("No password storing solution");

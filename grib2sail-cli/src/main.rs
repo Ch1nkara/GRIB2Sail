@@ -8,7 +8,10 @@ use anyhow::Result;
 use clap::{ArgAction, Parser};
 use log::{LevelFilter, debug, error, info};
 use std::{fs, path::Path, process};
-use tokio::{spawn, sync::mpsc::unbounded_channel};
+use tokio::{
+    spawn,
+    sync::mpsc::{UnboundedReceiver, unbounded_channel},
+};
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail-cli")]
@@ -97,27 +100,27 @@ async fn main() {
         Err(e) => error_exit(&format!("Failed to parse longitudes: {}", e)),
     };
 
-    let secret = match keyring::get_secret(&args.model).await {
+    let auth = match keyring::get_secret(&args.model).await {
         Ok(s) => s,
         Err(e) => error_exit(&e.to_string()),
     };
 
+    let (tx, rx) = unbounded_channel();
+    let ctx = g2s::DownloadContext::new(tx, auth);
+
     let grib = g2s::Grib {
         model: args.model.clone(),
-        step: args.step.clone(),
+        step: args.step,
         days: args.days,
         latitude_min: lat.iter().cloned().fold(f64::INFINITY, f64::min),
         latitude_max: lat.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         longitude_min: lon.iter().cloned().fold(f64::INFINITY, f64::min),
         longitude_max: lon.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
         components: args.components,
-        content: Vec::new(),
-        run: String::new(),
-        secret,
     };
     debug!("Grib generated is: {:?}", grib);
 
-    let (grib_content, run) = get_grib_content(grib).await;
+    let (grib_content, run) = get_grib_content(grib, ctx, rx).await;
     let filename = format!("{}_{}_{}.grib2", args.model, run, args.step,);
     match fs::write(outdir.join(&filename), grib_content) {
         Ok(_) => info!("Successfully downloaded {}", filename),
@@ -126,9 +129,12 @@ async fn main() {
 }
 
 // Return the grib content along with the run it came from
-async fn get_grib_content(grib: g2s::Grib) -> (Vec<u8>, String) {
-    let (tx, mut rx) = unbounded_channel();
-    let handle = spawn(async move { g2s::download_grib(grib, tx).await });
+async fn get_grib_content(
+    grib: g2s::Grib,
+    ctx: g2s::DownloadContext,
+    mut rx: UnboundedReceiver<g2s::DownloadEvent>,
+) -> (Vec<u8>, String) {
+    let handle = spawn(async move { g2s::download_grib(grib, ctx).await });
 
     while let Some(event) = rx.recv().await {
         match event {
@@ -150,10 +156,10 @@ async fn get_grib_content(grib: g2s::Grib) -> (Vec<u8>, String) {
         }
     }
 
-    let grib: g2s::Grib;
-    match handle.await {
+    // result is the grib_content + the grib_run
+    let result: (Vec<u8>, String) = match handle.await {
         Ok(handle_result) => match handle_result {
-            Ok(grib_res) => grib = grib_res,
+            Ok(res) => res,
             Err(e) => {
                 error_exit(&format!("Failed to download the grib: {}", e))
             }
@@ -163,7 +169,7 @@ async fn get_grib_content(grib: g2s::Grib) -> (Vec<u8>, String) {
     if let Err(e) = logger::clear_progress_bar() {
         error_exit(&format!("Failed to clear progress bar: {}", e));
     }
-    (grib.content, grib.run)
+    result
 }
 
 fn error_exit(msg: &str) -> ! {

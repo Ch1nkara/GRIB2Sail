@@ -1,7 +1,7 @@
 mod config;
 
 pub use config::{
-    Component, DownloadEvent, Grib, GribError, Model, ReqwestData, Step,
+    Component, DownloadContext, DownloadEvent, Grib, GribError, Model, Step,
 };
 
 use crate::ecmwf;
@@ -14,46 +14,33 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, RANGE},
 };
 use std::{sync::Arc, time::Duration};
-use tokio::{
-    sync::{Semaphore, mpsc::UnboundedSender},
-    time::sleep,
-};
+use tokio::{sync::Semaphore, time::sleep};
 
 pub async fn download_grib(
-    mut grib: Grib,
-    events: UnboundedSender<DownloadEvent>,
-) -> Result<Grib, GribError> {
-    let client = Client::new();
-
-    let request = ReqwestData {
-        client,
-        events,
-        urls_headers: Vec::new(),
-    };
-
+    grib: Grib,
+    ctx: DownloadContext,
+) -> Result<(Vec<u8>, String), GribError> {
     if grib.model.to_string().starts_with("arome")
         || grib.model.to_string().starts_with("arpege")
     {
-        grib = meteofrance::download_arome_arpege_grib(grib, request).await?;
+        meteofrance::download_grib(grib, ctx).await
     } else if grib.model.to_string().starts_with("gfs") {
-        grib = noaa::download_gfs_grib(grib, request).await?;
+        noaa::download_grib(grib, ctx).await
     } else if grib.model == Model::Ecmwf {
-        grib = ecmwf::download_ecmwf_grib(grib, request).await?;
+        ecmwf::download_grib(grib, ctx).await
     } else {
         let msg = format!("Unexpected model: {}", grib.model);
-        return Err(GribError::Generic(msg));
+        Err(GribError::Generic(msg))
     }
-
-    Ok(grib)
 }
 
-pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
+pub async fn fetch_data(ctx: DownloadContext) -> Result<Vec<u8>, GribError> {
     let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
     let mut result = Vec::new();
     let mut tasks = Vec::new();
 
-    for (idx, urls_headers) in request.urls_headers.iter().enumerate() {
-        let req = request.clone();
+    for (idx, urls_headers) in ctx.urls_headers.iter().enumerate() {
+        let req = ctx.clone();
         // split the requests by range if a range header is present
         if let Some(range_header) = urls_headers.1.get("range") {
             let range_str = range_header.to_str()?;
@@ -67,7 +54,7 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
                 return Err("Unexpected empty RANGE header".into());
             }
             for (idx_r, byte_range) in ranges_vec.enumerate() {
-                let mut req = request.clone();
+                let mut req = ctx.clone();
                 let mut headers = HeaderMap::new();
                 headers.insert(
                     RANGE,
@@ -101,17 +88,17 @@ pub async fn fetch_data(request: ReqwestData) -> Result<Vec<u8>, GribError> {
 
 async fn get_url(
     idx: usize,
-    request: ReqwestData,
+    ctx: DownloadContext,
     semaphore: Arc<Semaphore>,
 ) -> Result<Vec<u8>, GribError> {
     let _permit = semaphore.acquire_owned().await?;
-    let req = request
+    let req = ctx
         .client
-        .request(Method::GET, &request.urls_headers[idx].0)
-        .headers(request.urls_headers[idx].1.clone())
+        .request(Method::GET, &ctx.urls_headers[idx].0)
+        .headers(ctx.urls_headers[idx].1.clone())
         .build()?;
-    let bytes = fetch_url_5_try(&request.client, req).await?;
-    request.events.send(DownloadEvent::FinishedOne)?;
+    let bytes = fetch_url_5_try(&ctx.client, req).await?;
+    ctx.events.send(DownloadEvent::FinishedOne)?;
     Ok(bytes)
 }
 

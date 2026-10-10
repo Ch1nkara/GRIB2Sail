@@ -30,9 +30,10 @@ pub struct GribParams {
 }
 
 pub async fn unpack_crop(
-    grib: Grib,
+    grib: &Grib,
+    content: Vec<u8>,
     events: UnboundedSender<DownloadEvent>,
-) -> Result<Grib, GribError> {
+) -> Result<Vec<u8>, GribError> {
     let g_param = GribParams {
         latitude_min: (grib.latitude_min / 0.25).floor() * 0.25,
         latitude_max: (grib.latitude_max / 0.25).ceil() * 0.25,
@@ -48,11 +49,7 @@ pub async fn unpack_crop(
         block_size: 0x00,
         rsi: 0x0000,
     };
-    let mut res_grib = Grib {
-        content: Vec::new(),
-        ..grib.clone()
-    };
-    let old_content: Arc<[u8]> = Arc::from(grib.content);
+    let old_content: Arc<[u8]> = Arc::from(content);
     let concurrency = available_parallelism().map(|n| n.get()).unwrap_or(1);
     let semaphore = Arc::new(Semaphore::new(concurrency)); // based on CPU nb
     let mut tasks = Vec::new();
@@ -99,9 +96,9 @@ pub async fn unpack_crop(
     res_content.sort_by_key(|(idx, _)| *idx);
 
     // Concatenate Vec<Vec<u8 into Vec<u8
-    res_grib.content =
+    let final_content: Vec<u8> =
         res_content.into_iter().flat_map(|(_, data)| data).collect();
-    Ok(res_grib)
+    Ok(final_content)
 }
 
 async fn unpack_crop_message(

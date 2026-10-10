@@ -27,9 +27,6 @@ pub struct Grib {
     pub longitude_max: f64,
     pub longitude_min: f64,
     pub components: Vec<Component>,
-    pub content: Vec<u8>,
-    pub run: String,
-    pub secret: String,
 }
 
 #[derive(Clone, Debug, Display, PartialEq, ValueEnum)]
@@ -97,10 +94,25 @@ pub enum DownloadEvent {
 }
 
 #[derive(Debug, Clone)]
-pub struct ReqwestData {
+pub struct DownloadContext {
     pub client: Client,
     pub events: UnboundedSender<DownloadEvent>,
+    pub auth: Option<String>,
     pub urls_headers: Vec<(String, HeaderMap)>,
+}
+
+impl DownloadContext {
+    pub fn new(
+        events: UnboundedSender<DownloadEvent>,
+        auth: Option<String>,
+    ) -> Self {
+        Self {
+            client: Client::new(),
+            events,
+            auth,
+            urls_headers: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
