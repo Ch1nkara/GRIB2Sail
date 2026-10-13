@@ -21,12 +21,7 @@ pub async fn download_grib(
     mut grib: Grib,
     mut ctx: DownloadContext,
 ) -> Result<(Vec<u8>, String), GribError> {
-    let auth = ctx.auth.clone().ok_or_else(|| {
-        GribError::InvalidConf(
-            "MeteoFrance authentication is required".to_string(),
-        )
-    })?;
-    let token = get_token(&auth).await?;
+    let token = get_token(ctx.auth.clone()).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, bearer_header);
@@ -113,13 +108,13 @@ pub async fn download_grib(
     }
 
     // Change fomatting from 1970-01-01T00.00.00Z to 19700101-00z
-    let mut grib_run: String = run
+    let mut run: String = run
         .replace("-", "")
         .replace("T", "-")
         .chars()
         .take(11)
         .collect();
-    grib_run.push('z');
+    run.push('z');
 
     let mut content = Vec::new();
     events.send(DownloadEvent::Started { total })?;
@@ -148,7 +143,7 @@ pub async fn download_grib(
     }
 
     events.send(DownloadEvent::FinishedAll)?;
-    Ok((content, grib_run))
+    Ok((content, run))
 }
 
 fn extract_date(line: &str) -> Result<String, GribError> {

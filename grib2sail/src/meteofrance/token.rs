@@ -16,8 +16,14 @@ struct TokenResponse {
     //expires_in: usize,
 }
 
-pub async fn get_token(secret: &str) -> Result<String, GribError> {
+pub async fn get_token(secret: Option<String>) -> Result<String, GribError> {
     info!("Authenticating to MeteoFrance");
+
+    let secret = secret.ok_or_else(|| {
+        GribError::InvalidConf(
+            "MeteoFrance authentication is required".to_string(),
+        )
+    })?;
 
     let url_token = config::TOKEN_URL;
     let body = json!({"grant_type": "client_credentials"});
@@ -57,5 +63,5 @@ pub async fn get_token(secret: &str) -> Result<String, GribError> {
 }
 
 pub async fn is_secret_valid(secret: &str) -> bool {
-    get_token(secret).await.is_ok()
+    get_token(Some(secret.to_string())).await.is_ok()
 }
