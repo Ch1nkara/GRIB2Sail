@@ -1,7 +1,7 @@
 .dev/
 target/
 Cargo.lock
-devcontainer.sh
+.env
 *.grib2
 notes.*
 *.txt

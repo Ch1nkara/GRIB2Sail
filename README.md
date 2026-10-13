@@ -117,6 +117,9 @@ The repo is meant to be opened in a [Dev Container](https://containers.dev/).
    **Dev Containers: Reopen in Container**.
 4. In a terminal of that window, run `cargo build`.
 
+The devcontainer.sh script can also be used as a manual setup of the dev 
+environment.
+
 ## Uninstall
 
 Simply delete the file grib2sail-cli

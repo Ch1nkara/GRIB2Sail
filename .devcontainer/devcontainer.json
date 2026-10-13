@@ -8,9 +8,7 @@
   "shutdownAction": "none",
   "remoteUser": "vscode",
   "updateRemoteUserUID": false,
-  "containerEnv": {
-    "G2S_METEOFRANCE_BEARER": "${localEnv:G2S_METEOFRANCE_BEARER}"
-  },
+  "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
   "workspaceFolder": "/workspaces/Grib2Sail",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Grib2Sail,type=bind,consistency=cached",
   "customizations": {
