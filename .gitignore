@@ -1,3 +1,7 @@
 .dev/
 target/
 Cargo.lock
+devcontainer.sh
+*.grib2
+notes.*
+*.txt

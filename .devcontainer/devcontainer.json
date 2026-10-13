@@ -8,9 +8,11 @@
   "shutdownAction": "none",
   "remoteUser": "vscode",
   "updateRemoteUserUID": false,
+  "containerEnv": {
+    "G2S_METEOFRANCE_BEARER": "${localEnv:G2S_METEOFRANCE_BEARER}"
+  },
   "workspaceFolder": "/workspaces/Grib2Sail",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Grib2Sail,type=bind,consistency=cached",
-  "postCreateCommand": "cargo fetch",
   "customizations": {
     "vscode": {
       "extensions": ["rust-lang.rust-analyzer"]
