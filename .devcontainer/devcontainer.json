@@ -6,9 +6,19 @@
   },
   "overrideCommand": false,
   "shutdownAction": "none",
-  "remoteUser": "vscode",
+  "remoteUser": "root",
   "updateRemoteUserUID": false,
   "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "G2S_METEOFRANCE_BEARER": "${localEnv:G2S_METEOFRANCE_BEARER}",
+    "XAUTHORITY": "/tmp/xauth",
+    "SLINT_BACKEND": "winit-software"
+  },
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+    "source=${localEnv:XAUTHORITY},target=/tmp/xauth,type=bind,consistency=cached"
+  ],
   "workspaceFolder": "/workspaces/Grib2Sail",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Grib2Sail,type=bind,consistency=cached",
   "customizations": {
