@@ -2,10 +2,14 @@
 name = "grib2sail-gui"
 version = "0.1.0"
 edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Ch1nkara/GRIB2Sail"
+readme = "../README.md"
 
 [[bin]]
 name = "grib2sail"
 path = "src/main.rs"
 
 [dependencies]
-slint = "1.18.1"
+dioxus = { version = "0.7.10", features = ["desktop"] }
+geojson = "0.24.2"
