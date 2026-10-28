@@ -11,9 +11,12 @@
   "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
   "containerEnv": {
     "DISPLAY": "${localEnv:DISPLAY}",
-    "G2S_METEOFRANCE_BEARER": "${localEnv:G2S_METEOFRANCE_BEARER}",
     "XAUTHORITY": "/tmp/xauth",
-    "SLINT_BACKEND": "winit-software"
+    "SLINT_BACKEND": "winit-software",
+    "GDK_BACKEND": "x11",
+    "LIBGL_ALWAYS_SOFTWARE": "1",
+    "MESA_LOADER_DRIVER_OVERRIDE": "llvmpipe",
+    "WEBKIT_DISABLE_COMPOSITING_MODE": "1"
   },
   "mounts": [
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",

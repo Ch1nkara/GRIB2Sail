@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr-dev \
     libxi-dev \
     xinput \
+    libgtk-3-dev \
+    libsoup-3.0-dev \
+    libxdo-dev \
+    libwebkit2gtk-4.1-dev \
   && rustup component add rustfmt clippy \
   && rm -rf /var/lib/apt/lists/*
 
