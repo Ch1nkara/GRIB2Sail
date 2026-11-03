@@ -15,7 +15,7 @@ use reqwest::{
     Method,
     header::{AUTHORIZATION, HeaderMap, HeaderValue},
 };
-use std::{thread::sleep, time::Duration};
+use tokio::time::{Duration, sleep};
 
 pub async fn download_grib(
     mut grib: Grib,
@@ -26,9 +26,9 @@ pub async fn download_grib(
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, bearer_header);
 
-    if grib.days > 2 && grib.model.to_string().starts_with("arome") {
+    if grib.days > 2 && grib.model.is_arome() {
         warn!("Arome forecast is limited to 2 days max");
-    } else if grib.days > 4 && grib.model.to_string().starts_with("arpege") {
+    } else if grib.days > 4 && grib.model.is_arpege() {
         warn!("Arpege forecast is limited to 4 days max");
         grib.days = 4;
     }
@@ -137,7 +137,7 @@ pub async fn download_grib(
             content.append(&mut fetch_data(req).await?);
             if i != chunks.len() - 1 {
                 info!("Sleeping 1 minute...");
-                sleep(Duration::from_mins(1));
+                sleep(Duration::from_mins(1)).await;
             }
         }
     }

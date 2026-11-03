@@ -20,11 +20,9 @@ pub async fn download_grib(
     grib: Grib,
     ctx: DownloadContext,
 ) -> Result<(Vec<u8>, String), GribError> {
-    if grib.model.to_string().starts_with("arome")
-        || grib.model.to_string().starts_with("arpege")
-    {
+    if grib.model.is_meteofrance() {
         meteofrance::download_grib(grib, ctx).await
-    } else if grib.model.to_string().starts_with("gfs") {
+    } else if grib.model.is_gfs() {
         noaa::download_grib(grib, ctx).await
     } else if grib.model == Model::Ecmwf {
         ecmwf::download_grib(grib, ctx).await

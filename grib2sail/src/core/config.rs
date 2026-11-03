@@ -1,5 +1,4 @@
 use clap::ValueEnum;
-use log::SetLoggerError;
 use regex::Error as RegError;
 use reqwest::{
     Client, Error as ReqError,
@@ -58,6 +57,33 @@ pub enum Model {
     Gfs100,
     #[clap(help = "ECMWF 0,25° - 22km, worldwide")]
     Ecmwf,
+}
+
+impl Model {
+    pub fn is_arome(&self) -> bool {
+        matches!(
+            self,
+            Self::Arome
+                | Self::Arome0025
+                | Self::AromeAntille
+                | Self::AromeGuyane
+                | Self::AromeIndien
+                | Self::AromeNcaledonie
+                | Self::AromePolynesie
+        )
+    }
+
+    pub fn is_arpege(&self) -> bool {
+        matches!(self, Self::Arpege025 | Self::Arpege100)
+    }
+
+    pub fn is_gfs(&self) -> bool {
+        matches!(self, Self::Gfs025 | Self::Gfs050 | Self::Gfs100)
+    }
+
+    pub fn is_meteofrance(&self) -> bool {
+        self.is_arome() || self.is_arpege()
+    }
 }
 
 #[derive(Copy, Clone, Debug, Display, ValueEnum)]
@@ -144,17 +170,8 @@ pub enum GribError {
     #[error("IO error: {0}")]
     Io(#[from] IoError),
 
-    #[error("Keyring error: {0}")]
-    Keyring(String),
-
-    #[error("Self-Update error: {0}")]
-    SelfUpdate(String),
-
     #[error("Regex error: {0}")]
     Regex(#[from] RegError),
-
-    #[error("Logger error: {0}")]
-    SetLoggerError(#[from] SetLoggerError),
 
     #[error("Parse error: {0}")]
     ParseIntError(#[from] ParseIntError),
