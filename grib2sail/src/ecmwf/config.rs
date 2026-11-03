@@ -16,7 +16,7 @@ pub fn get_urls(
     url_type: UrlType,
     run: &str,
 ) -> Vec<(String, HeaderMap)> {
-    let mut urls_headers = Vec::new();
+    let mut urls_and_headers = Vec::new();
 
     let url = format!("https://{}/", ECMWF_HOST);
 
@@ -34,7 +34,7 @@ pub fn get_urls(
                     } else {
                         "oper"
                     };
-                    urls_headers.push((
+                    urls_and_headers.push((
                         format!(
                             "{}{}/{}z/ifs/0p25/{}/{}{}0000-{}h-{}-fc.grib2",
                             url,
@@ -82,7 +82,7 @@ pub fn get_urls(
                 }
             }
             for h in hours {
-                urls_headers.push((
+                urls_and_headers.push((
                     format!(
                         "{}{}/{}z/ifs/0p25/{}/{}{}0000-{}h-{}-fc.grib2",
                         url, run_d, run_h, dataset, run_d, run_h, h, dataset,
@@ -92,7 +92,7 @@ pub fn get_urls(
             }
         }
     }
-    urls_headers
+    urls_and_headers
 }
 
 pub fn get_headers(

@@ -51,7 +51,7 @@ async fn get_password(id: &str) -> Result<String> {
                 if g2s::is_secret_valid(&secret).await {
                     break;
                 }
-                error!("The API subbscription is not valid, try again");
+                error!("The API subscription is not valid, try again");
             }
 
             entry.set_password(&secret)?;

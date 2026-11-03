@@ -1,4 +1,4 @@
-use crate::core::{DownloadEvent, Grib, GribError};
+use crate::core::{DownloadOptions, Grib, GribError};
 
 use crate::ecmwf::helper_sect3::sect_3;
 use crate::ecmwf::helper_sect4::sect_4;
@@ -7,10 +7,7 @@ use crate::ecmwf::helper_sect7::sect_7;
 
 use log::debug;
 use std::{sync::Arc, thread::available_parallelism};
-use tokio::{
-    spawn,
-    sync::{Semaphore, mpsc::UnboundedSender},
-};
+use tokio::{spawn, sync::Semaphore};
 
 #[derive(Debug, Clone)]
 pub struct GribParams {
@@ -32,7 +29,7 @@ pub struct GribParams {
 pub async fn unpack_crop(
     grib: &Grib,
     content: Vec<u8>,
-    events: UnboundedSender<DownloadEvent>,
+    options: &DownloadOptions,
 ) -> Result<Vec<u8>, GribError> {
     let g_param = GribParams {
         latitude_min: (grib.latitude_min / 0.25).floor() * 0.25,
@@ -79,7 +76,7 @@ pub async fn unpack_crop(
                 idx,
                 msg_len,
                 g_param.clone(),
-                events.clone(),
+                options.clone(),
                 Arc::clone(&semaphore),
             )),
         ));
@@ -106,11 +103,11 @@ async fn unpack_crop_message(
     mut idx: usize,
     msg_len: usize,
     mut g_p: GribParams,
-    events: UnboundedSender<DownloadEvent>,
+    options: DownloadOptions,
     semaphore: Arc<Semaphore>,
 ) -> Result<Vec<u8>, GribError> {
     let _permit = semaphore.acquire_owned().await?;
-    events.send(DownloadEvent::FinishedOne)?;
+    options.finished_one(1)?;
     let mut res_msg = Vec::new();
 
     // Handle section 0

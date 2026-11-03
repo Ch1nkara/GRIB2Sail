@@ -8,15 +8,15 @@ mod unpack_crop;
 use config::{UrlType, get_headers, get_urls};
 use unpack_crop::unpack_crop;
 
-use crate::core::{
-    Component, DownloadContext, DownloadEvent, Grib, GribError, fetch_data,
-};
+use crate::core::{Component, DownloadOptions, Grib, GribError, fetch_data};
 
 use log::{debug, info, warn};
+use reqwest::Client;
 
 pub async fn download_grib(
     mut grib: Grib,
-    mut ctx: DownloadContext,
+    client: &Client,
+    options: &DownloadOptions,
 ) -> Result<(Vec<u8>, String), GribError> {
     if grib.days > 15 {
         warn!("ECMWF forecast is limited to 15 days max");
@@ -24,15 +24,15 @@ pub async fn download_grib(
     }
 
     info!("Finding the latest available forecast");
-    ctx.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
+    let poss_urls = get_urls(&grib, UrlType::CheckAvailability, "");
     let mut index = 0;
     let run;
     loop {
-        if index >= ctx.urls_headers.len() {
+        if index >= poss_urls.len() {
             return Err("Couldn't find latest available forecast".into());
         }
-        let url = &ctx.urls_headers[index].0;
-        let resp = ctx.client.head(url).send().await?.error_for_status();
+        let url = &poss_urls[index].0;
+        let resp = client.head(url).send().await?.error_for_status();
 
         if resp.is_ok() {
             run = format!("{}-{}z", &url[54..62], &url[63..65]);
@@ -43,25 +43,23 @@ pub async fn download_grib(
     }
 
     info!("Fetching metadata");
-    ctx.urls_headers = get_urls(&grib, UrlType::GribData, &run);
+    let mut to_download = get_urls(&grib, UrlType::GribData, &run);
     // get the range bytes header for all requested layers
-    for (url, h) in ctx.urls_headers.iter_mut() {
-        let index = ctx
-            .client
+    for (url, header) in to_download.iter_mut() {
+        let index = client
             .get(url.replace(".grib2", ".index"))
             .send()
             .await?
             .error_for_status()?
             .text()
             .await?;
-        *h = get_headers(index, &grib.components)?;
+        *header = get_headers(index, &grib.components)?;
     }
 
     info!("Downloading the grib layers");
-    let nb_range = ctx
-        .urls_headers
+    let nb_range = to_download
         .first()
-        .ok_or("Unexpected empty urls_headers")?
+        .ok_or("Unexpected empty urls_and_headers")?
         .1
         .get("Range")
         .ok_or("Unexpected missing RANGE header")?
@@ -71,15 +69,13 @@ pub async fn download_grib(
         .count()
         + 1;
 
-    let total = ctx.urls_headers.len() * nb_range;
+    let total = to_download.len() * nb_range;
 
-    let events = ctx.events.clone();
+    options.started(total)?;
 
-    events.send(DownloadEvent::Started { total })?;
+    let content = fetch_data(client, &to_download, options).await?;
 
-    let content = fetch_data(ctx).await?;
-
-    events.send(DownloadEvent::FinishedAll)?;
+    options.finished_all(total)?;
 
     info!("Unpacking and cropping the grib file");
     let mut nb_components = grib.components.len();
@@ -89,11 +85,11 @@ pub async fn download_grib(
 
     let total = (nb_components * grib.days as usize * 24 / grib.step as usize)
         + nb_components;
-    events.send(DownloadEvent::Started { total })?;
+    options.started(total)?;
 
-    let content = unpack_crop(&grib, content, events.clone()).await?;
+    let content = unpack_crop(&grib, content, options).await?;
 
-    events.send(DownloadEvent::FinishedAll)?;
+    options.finished_all(total)?;
 
     Ok((content, run))
 }

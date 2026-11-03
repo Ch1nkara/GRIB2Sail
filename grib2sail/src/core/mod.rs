@@ -1,8 +1,7 @@
 mod config;
 
-pub use config::{
-    Component, DownloadContext, DownloadEvent, Grib, GribError, Model, Step,
-};
+pub(crate) use config::GribError;
+pub use config::{Component, DownloadOptions, Grib, Model, Step};
 
 use crate::ecmwf;
 use crate::meteofrance;
@@ -18,29 +17,42 @@ use tokio::{sync::Semaphore, time::sleep};
 
 pub async fn download_grib(
     grib: Grib,
-    ctx: DownloadContext,
+    options: DownloadOptions,
+) -> Result<(Vec<u8>, String), String> {
+    download_grib_inner(grib, options)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn download_grib_inner(
+    grib: Grib,
+    options: DownloadOptions,
 ) -> Result<(Vec<u8>, String), GribError> {
+    let client = Client::new();
     if grib.model.is_meteofrance() {
-        meteofrance::download_grib(grib, ctx).await
+        meteofrance::download_grib(grib, &client, &options).await
     } else if grib.model.is_gfs() {
-        noaa::download_grib(grib, ctx).await
+        noaa::download_grib(grib, &client, &options).await
     } else if grib.model == Model::Ecmwf {
-        ecmwf::download_grib(grib, ctx).await
+        ecmwf::download_grib(grib, &client, &options).await
     } else {
         let msg = format!("Unexpected model: {}", grib.model);
         Err(GribError::Generic(msg))
     }
 }
 
-pub async fn fetch_data(ctx: DownloadContext) -> Result<Vec<u8>, GribError> {
+pub async fn fetch_data(
+    client: &Client,
+    urls_and_headers: &[(String, HeaderMap)],
+    options: &DownloadOptions,
+) -> Result<Vec<u8>, GribError> {
     let semaphore = Arc::new(Semaphore::new(5)); // limit concurrency to 5
     let mut result = Vec::new();
     let mut tasks = Vec::new();
 
-    for (idx, urls_headers) in ctx.urls_headers.iter().enumerate() {
-        let req = ctx.clone();
+    for (idx, (url, headers_map)) in urls_and_headers.iter().enumerate() {
         // split the requests by range if a range header is present
-        if let Some(range_header) = urls_headers.1.get("range") {
+        if let Some(range_header) = headers_map.get("range") {
             let range_str = range_header.to_str()?;
             if !range_str.starts_with("bytes=") {
                 return Err("Unexpected non-bytes RANGE header".into());
@@ -52,22 +64,32 @@ pub async fn fetch_data(ctx: DownloadContext) -> Result<Vec<u8>, GribError> {
                 return Err("Unexpected empty RANGE header".into());
             }
             for (idx_r, byte_range) in ranges_vec.enumerate() {
-                let mut req = ctx.clone();
                 let mut headers = HeaderMap::new();
                 headers.insert(
                     RANGE,
                     HeaderValue::from_str(&format!("bytes={}", byte_range))?,
                 );
-                req.urls_headers[idx].1 = headers;
                 tasks.push((
                     idx * nb_r + idx_r,
-                    tokio::spawn(get_url(idx, req, semaphore.clone())),
+                    tokio::spawn(get_url(
+                        client.clone(),
+                        url.clone(),
+                        headers,
+                        semaphore.clone(),
+                        options.clone(),
+                    )),
                 ));
             }
         } else {
             tasks.push((
                 idx,
-                tokio::spawn(get_url(idx, req, semaphore.clone())),
+                tokio::spawn(get_url(
+                    client.clone(),
+                    url.to_string(),
+                    headers_map.clone(),
+                    semaphore.clone(),
+                    options.clone(),
+                )),
             ));
         }
     }
@@ -85,18 +107,16 @@ pub async fn fetch_data(ctx: DownloadContext) -> Result<Vec<u8>, GribError> {
 }
 
 async fn get_url(
-    idx: usize,
-    ctx: DownloadContext,
+    client: Client,
+    url: String,
+    headers: HeaderMap,
     semaphore: Arc<Semaphore>,
+    options: DownloadOptions,
 ) -> Result<Vec<u8>, GribError> {
     let _permit = semaphore.acquire_owned().await?;
-    let req = ctx
-        .client
-        .request(Method::GET, &ctx.urls_headers[idx].0)
-        .headers(ctx.urls_headers[idx].1.clone())
-        .build()?;
-    let bytes = fetch_url_5_try(&ctx.client, req).await?;
-    ctx.events.send(DownloadEvent::FinishedOne)?;
+    let req = client.request(Method::GET, &url).headers(headers).build()?;
+    let bytes = fetch_url_5_try(&client, req).await?;
+    options.finished_one(1)?;
     Ok(bytes)
 }
 

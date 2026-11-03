@@ -16,7 +16,7 @@ pub fn get_urls(
     url_type: UrlType,
     run: &str,
 ) -> Vec<(String, HeaderMap)> {
-    let mut urls_headers = Vec::new();
+    let mut urls_and_headers = Vec::new();
 
     let domain = format!("https://{}/", NOAA_HOST);
     let (model, format) = match grib.model {
@@ -43,7 +43,7 @@ pub fn get_urls(
                         model,
                         grib.days * 24,
                     );
-                    urls_headers.push((
+                    urls_and_headers.push((
                         format!(
                             "{}{}{}/{}/atmos/{}",
                             domain, url, date_str, hour_run, layer,
@@ -116,10 +116,10 @@ pub fn get_urls(
                         }
                     }
                 }
-                urls_headers
+                urls_and_headers
                     .push((format!("{}{}", temp_url, sub), HeaderMap::new()));
             }
         }
     }
-    urls_headers
+    urls_and_headers
 }

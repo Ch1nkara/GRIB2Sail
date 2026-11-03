@@ -1,24 +1,26 @@
 mod config;
 
 use crate::core::{
-    DownloadContext, DownloadEvent, Grib, GribError, fetch_data,
-    fetch_url_5_try,
+    DownloadOptions, Grib, GribError, fetch_data, fetch_url_5_try,
 };
 use config::{UrlType, get_urls};
 
 use log::{debug, info, warn};
+use reqwest::Client;
 use reqwest::Method;
 
 pub async fn download_grib(
     grib: Grib,
-    ctx: DownloadContext,
+    client: &Client,
+    options: &DownloadOptions,
 ) -> Result<(Vec<u8>, String), GribError> {
-    fetch_gfs_data(grib, ctx).await
+    fetch_gfs_data(grib, client, options).await
 }
 
 async fn fetch_gfs_data(
     mut grib: Grib,
-    mut ctx: DownloadContext,
+    client: &Client,
+    options: &DownloadOptions,
 ) -> Result<(Vec<u8>, String), GribError> {
     if grib.days > 16 {
         warn!("GFS forecast is limited to 16 days max");
@@ -29,11 +31,11 @@ async fn fetch_gfs_data(
     let mut last_run = String::new();
     let mut date = String::new();
     let mut hour = String::new();
-    ctx.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
+    let poss_urls = get_urls(&grib, UrlType::CheckAvailability, "");
     // The latest forecast is the first one that does not return an error status
-    for (url, _) in &ctx.urls_headers {
-        let req = ctx.client.request(Method::HEAD, url).build()?;
-        if fetch_url_5_try(&ctx.client, req).await.is_ok() {
+    for (url, _) in &poss_urls {
+        let req = client.request(Method::HEAD, url).build()?;
+        if fetch_url_5_try(client, req).await.is_ok() {
             date = url[60..68].to_string();
             hour = url[69..71].to_string();
             last_run = format!("{}%2F{}", date, hour);
@@ -45,19 +47,18 @@ async fn fetch_gfs_data(
         return Err("Couldn't find latest available forecast".into());
     }
 
-    ctx.urls_headers = get_urls(&grib, UrlType::GribData, &last_run);
+    let to_download = get_urls(&grib, UrlType::GribData, &last_run);
 
     info!("Downloading the grib layers");
-    let total = ctx.urls_headers.len();
-    let events = ctx.events.clone();
+    let total = to_download.len();
 
     let run = format!("{}-{}z", date, hour);
 
-    events.send(DownloadEvent::Started { total })?;
+    options.started(total)?;
 
-    let content = fetch_data(ctx).await?;
+    let content = fetch_data(client, &to_download, options).await?;
 
-    events.send(DownloadEvent::FinishedAll)?;
+    options.finished_all(total)?;
 
     Ok((content, run))
 }

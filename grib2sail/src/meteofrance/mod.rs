@@ -2,8 +2,7 @@ mod config;
 mod token;
 
 use crate::core::{
-    DownloadContext, DownloadEvent, Grib, GribError, Model, fetch_data,
-    fetch_url_5_try,
+    DownloadOptions, Grib, GribError, Model, fetch_data, fetch_url_5_try,
 };
 use config::{UrlType, WIND_V, get_urls};
 use token::get_token;
@@ -12,16 +11,17 @@ pub use token::is_secret_valid;
 use log::{debug, info, warn};
 use regex::Regex;
 use reqwest::{
-    Method,
+    Client, Method,
     header::{AUTHORIZATION, HeaderMap, HeaderValue},
 };
 use tokio::time::{Duration, sleep};
 
 pub async fn download_grib(
     mut grib: Grib,
-    mut ctx: DownloadContext,
+    client: &Client,
+    options: &DownloadOptions,
 ) -> Result<(Vec<u8>, String), GribError> {
-    let token = get_token(ctx.auth.clone()).await?;
+    let token = get_token(options.auth.clone()).await?;
     let bearer_header = HeaderValue::from_str(&format!("Bearer {}", token))?;
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, bearer_header);
@@ -48,7 +48,7 @@ pub async fn download_grib(
     }
 
     info!("Finding the latest available forecast");
-    ctx.urls_headers = get_urls(&grib, UrlType::CheckAvailability, "");
+    let poss_urls = get_urls(&grib, UrlType::CheckAvailability, "");
     // List the forecasts availables, filter the wind ones and extract
     // the last 2 run dates from the last two lines
     let mut attempts = 1;
@@ -58,13 +58,12 @@ pub async fn download_grib(
         if attempts > 3 {
             return Err("Unable to find the latest availables forecasts".into());
         }
-        let req = ctx
-            .client
-            .request(Method::GET, &ctx.urls_headers[0].0)
+        let req = client
+            .request(Method::GET, &poss_urls[0].0)
             .headers(headers.clone())
             .build()?;
         runs_available =
-            String::from_utf8(fetch_url_5_try(&ctx.client, req).await?)?;
+            String::from_utf8(fetch_url_5_try(client, req).await?)?;
         wind_runs = runs_available
             .lines()
             .filter(|line| line.contains(WIND_V))
@@ -80,14 +79,13 @@ pub async fn download_grib(
     debug!("last2run: {:?}", last2run);
 
     let mut run = &last2run[0];
-    ctx.urls_headers = get_urls(&grib, UrlType::GribData, run);
+    let mut to_download = get_urls(&grib, UrlType::GribData, run);
     //debug!("Urls generated are: {:?}", layer_urls);
 
     // If the last run does not have all the required layers yet,
     // fall back to the previous one
-    if ctx
-        .client
-        .get(&ctx.urls_headers[ctx.urls_headers.len() - 1].0)
+    if client
+        .get(&to_download[to_download.len() - 1].0)
         .headers(headers.clone())
         .send()
         .await?
@@ -95,16 +93,15 @@ pub async fn download_grib(
         .is_err()
     {
         run = &last2run[1];
-        ctx.urls_headers = get_urls(&grib, UrlType::GribData, run);
+        to_download = get_urls(&grib, UrlType::GribData, run);
     }
 
     info!("Downloading the grib layers");
-    let total = ctx.urls_headers.len();
-    let events = ctx.events.clone();
+    let total = to_download.len();
 
     // Add token header to every request url
-    for (_, h) in ctx.urls_headers.iter_mut() {
-        *h = headers.clone();
+    for (_, header) in to_download.iter_mut() {
+        *header = headers.clone();
     }
 
     // Change fomatting from 1970-01-01T00.00.00Z to 19700101-00z
@@ -117,9 +114,9 @@ pub async fn download_grib(
     run.push('z');
 
     let mut content = Vec::new();
-    events.send(DownloadEvent::Started { total })?;
+    options.started(total)?;
     if total < 100 {
-        content = fetch_data(ctx).await?;
+        content = fetch_data(client, &to_download, options).await?;
     } else {
         let mut msg = String::from("The requested grib has ");
         msg.push_str(&total.to_string());
@@ -130,11 +127,9 @@ pub async fn download_grib(
         msg.push_str(" layers by increasing the step or reducing the number");
         msg.push_str(" of components");
         warn!("{}", msg);
-        let chunks = ctx.urls_headers.chunks(100).collect::<Vec<_>>();
+        let chunks = to_download.chunks(100).collect::<Vec<_>>();
         for (i, chunk) in chunks.iter().enumerate() {
-            let mut req = ctx.clone();
-            req.urls_headers = chunk.to_vec();
-            content.append(&mut fetch_data(req).await?);
+            content.append(&mut fetch_data(client, chunk, options).await?);
             if i != chunks.len() - 1 {
                 info!("Sleeping 1 minute...");
                 sleep(Duration::from_mins(1)).await;
@@ -142,7 +137,7 @@ pub async fn download_grib(
         }
     }
 
-    events.send(DownloadEvent::FinishedAll)?;
+    options.finished_all(total)?;
     Ok((content, run))
 }
 

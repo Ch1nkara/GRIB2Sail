@@ -52,7 +52,7 @@ pub fn get_urls(
             url.push_str("&format=application/wmo-grib");
         }
     }
-    let mut urls_headers = Vec::new();
+    let mut urls_and_headers = Vec::new();
     let mut times = Vec::new();
     let mut step = grib.step as usize;
     if step == 1 && grib.model == Model::Arpege100 {
@@ -100,8 +100,8 @@ pub fn get_urls(
                     windv_url.push_str(run);
                     windu_url.push_str("&subset=height(10)");
                     windv_url.push_str("&subset=height(10)");
-                    urls_headers.push((windu_url, HeaderMap::new()));
-                    urls_headers.push((windv_url, HeaderMap::new()));
+                    urls_and_headers.push((windu_url, HeaderMap::new()));
+                    urls_and_headers.push((windv_url, HeaderMap::new()));
                 }
                 Component::WindGust => {
                     if *time == 0 {
@@ -112,13 +112,13 @@ pub fn get_urls(
                     temp_url.push_str("SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND___");
                     temp_url.push_str(run);
                     temp_url.push_str("&subset=height(10)");
-                    urls_headers.push((temp_url, HeaderMap::new()));
+                    urls_and_headers.push((temp_url, HeaderMap::new()));
                 }
                 Component::Pressure => {
                     temp_url.push_str("&coverageid=");
                     temp_url.push_str("PRESSURE__MEAN_SEA_LEVEL___");
                     temp_url.push_str(run);
-                    urls_headers.push((temp_url, HeaderMap::new()));
+                    urls_and_headers.push((temp_url, HeaderMap::new()));
                 }
                 Component::CloudCover => {
                     if *time == 0 {
@@ -128,10 +128,10 @@ pub fn get_urls(
                     temp_url.push_str("TOTAL_CLOUD_COVER__");
                     temp_url.push_str("GROUND_OR_WATER_SURFACE___");
                     temp_url.push_str(run);
-                    urls_headers.push((temp_url, HeaderMap::new()));
+                    urls_and_headers.push((temp_url, HeaderMap::new()));
                 }
             }
         }
     }
-    urls_headers
+    urls_and_headers
 }

@@ -1,20 +1,15 @@
 use clap::ValueEnum;
 use regex::Error as RegError;
 use reqwest::{
-    Client, Error as ReqError,
-    header::{HeaderMap, InvalidHeaderValue, ToStrError},
+    Error as ReqError,
+    header::{InvalidHeaderValue, ToStrError},
 };
 use std::string::FromUtf8Error;
+use std::sync::Arc;
 use std::{io::Error as IoError, num::ParseIntError};
 use strum_macros::Display;
 use thiserror::Error;
-use tokio::{
-    sync::{
-        AcquireError,
-        mpsc::{UnboundedSender, error::SendError},
-    },
-    task::JoinError,
-};
+use tokio::{sync::AcquireError, task::JoinError};
 
 #[derive(Clone, Debug)]
 pub struct Grib {
@@ -112,32 +107,70 @@ pub enum Component {
     CloudCover,
 }
 
-#[derive(Debug, Clone)]
-pub enum DownloadEvent {
-    Started { total: usize },
-    FinishedOne,
-    FinishedAll,
-}
+pub type ProgressCallback =
+    Arc<dyn Fn(usize) -> Result<(), String> + Send + Sync>;
 
-#[derive(Debug, Clone)]
-pub struct DownloadContext {
-    pub client: Client,
-    pub events: UnboundedSender<DownloadEvent>,
+#[derive(Clone, Default)]
+pub struct DownloadOptions {
     pub auth: Option<String>,
-    pub urls_headers: Vec<(String, HeaderMap)>,
+    pub on_started: Option<ProgressCallback>,
+    pub on_finished_one: Option<ProgressCallback>,
+    pub on_finished_all: Option<ProgressCallback>,
 }
 
-impl DownloadContext {
-    pub fn new(
-        events: UnboundedSender<DownloadEvent>,
-        auth: Option<String>,
+impl DownloadOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_auth(mut self, auth: impl Into<Option<String>>) -> Self {
+        self.auth = auth.into();
+        self
+    }
+
+    pub fn with_on_started(
+        mut self,
+        cb: impl Fn(usize) -> Result<(), String> + Send + Sync + 'static,
     ) -> Self {
-        Self {
-            client: Client::new(),
-            events,
-            auth,
-            urls_headers: Vec::new(),
+        self.on_started = Some(Arc::new(cb));
+        self
+    }
+
+    pub fn with_on_finished_one(
+        mut self,
+        cb: impl Fn(usize) -> Result<(), String> + Send + Sync + 'static,
+    ) -> Self {
+        self.on_finished_one = Some(Arc::new(cb));
+        self
+    }
+
+    pub fn with_on_finished_all(
+        mut self,
+        cb: impl Fn(usize) -> Result<(), String> + Send + Sync + 'static,
+    ) -> Self {
+        self.on_finished_all = Some(Arc::new(cb));
+        self
+    }
+
+    pub(crate) fn started(&self, total: usize) -> Result<(), GribError> {
+        if let Some(cb) = &self.on_started {
+            cb(total).map_err(GribError::Generic)?;
         }
+        Ok(())
+    }
+
+    pub(crate) fn finished_one(&self, count: usize) -> Result<(), GribError> {
+        if let Some(cb) = &self.on_finished_one {
+            cb(count).map_err(GribError::Generic)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn finished_all(&self, total: usize) -> Result<(), GribError> {
+        if let Some(cb) = &self.on_finished_all {
+            cb(total).map_err(GribError::Generic)?;
+        }
+        Ok(())
     }
 }
 
@@ -151,9 +184,6 @@ pub enum GribError {
 
     #[error("ToStr error: {0}")]
     ToStr(#[from] ToStrError),
-
-    #[error("Send error: {0}")]
-    SendError(#[from] SendError<DownloadEvent>),
 
     #[error("Join error: {0}")]
     Join(#[from] JoinError),

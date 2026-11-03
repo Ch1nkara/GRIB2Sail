@@ -8,10 +8,6 @@ use anyhow::Result;
 use clap::{ArgAction, Parser};
 use log::{LevelFilter, debug, error, info};
 use std::{fs, path::Path, process};
-use tokio::{
-    spawn,
-    sync::mpsc::{UnboundedReceiver, unbounded_channel},
-};
 
 #[derive(Parser, Debug)]
 #[command(name = "grib2sail-cli")]
@@ -105,8 +101,18 @@ async fn main() {
         Err(e) => error_exit(&e.to_string()),
     };
 
-    let (tx, rx) = unbounded_channel();
-    let ctx = g2s::DownloadContext::new(tx, auth);
+    let options = g2s::DownloadOptions::new()
+        .with_auth(auth)
+        .with_on_started(|total| {
+            logger::set_progress_bar(total).map_err(|e| e.to_string())
+        })
+        .with_on_finished_one(|inc| {
+            logger::increment_progress_bar(inc as u64)
+                .map_err(|e| e.to_string())
+        })
+        .with_on_finished_all(|_| {
+            logger::clear_progress_bar().map_err(|e| e.to_string())
+        });
 
     let grib = g2s::Grib {
         model: args.model.clone(),
@@ -120,56 +126,15 @@ async fn main() {
     };
     debug!("Grib generated is: {:?}", grib);
 
-    let (grib_content, run) = get_grib_content(grib, ctx, rx).await;
+    let (grib_content, run) = match g2s::download_grib(grib, options).await {
+        Ok(res) => res,
+        Err(e) => error_exit(&e),
+    };
     let filename = format!("{}_{}_{}.grib2", args.model, run, args.step,);
     match fs::write(outdir.join(&filename), grib_content) {
         Ok(_) => info!("Successfully downloaded {}", filename),
         Err(e) => error!("Failed to write the grib file: {}", e),
     }
-}
-
-// Return the grib content along with the run it came from
-async fn get_grib_content(
-    grib: g2s::Grib,
-    ctx: g2s::DownloadContext,
-    mut rx: UnboundedReceiver<g2s::DownloadEvent>,
-) -> (Vec<u8>, String) {
-    let handle = spawn(async move { g2s::download_grib(grib, ctx).await });
-
-    while let Some(event) = rx.recv().await {
-        match event {
-            g2s::DownloadEvent::Started { total } => {
-                if let Err(e) = logger::set_progress_bar(total) {
-                    error_exit(&format!("Failed to set progress bar: {}", e));
-                }
-            }
-            g2s::DownloadEvent::FinishedOne => {
-                if let Err(e) = logger::increment_progress_bar(1) {
-                    error_exit(&format!("Failed to inc progress bar: {}", e));
-                }
-            }
-            g2s::DownloadEvent::FinishedAll => {
-                if let Err(e) = logger::clear_progress_bar() {
-                    error_exit(&format!("Failed to clear progress bar: {}", e));
-                }
-            }
-        }
-    }
-
-    // result is the grib_content + the grib_run
-    let result: (Vec<u8>, String) = match handle.await {
-        Ok(handle_result) => match handle_result {
-            Ok(res) => res,
-            Err(e) => {
-                error_exit(&format!("Failed to download the grib: {}", e))
-            }
-        },
-        Err(e) => error_exit(&format!("Failed to spawn subprocess: {}", e)),
-    };
-    if let Err(e) = logger::clear_progress_bar() {
-        error_exit(&format!("Failed to clear progress bar: {}", e));
-    }
-    result
 }
 
 fn error_exit(msg: &str) -> ! {
