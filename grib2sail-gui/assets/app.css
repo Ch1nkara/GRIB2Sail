@@ -74,6 +74,12 @@ html, body {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 24px 64px rgba(0, 0, 0, 0.36);
 }
 
+.map-viewport {
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 50%;
+}
+
 .map {
     width: 100%;
     height: 100%;
@@ -84,6 +90,5 @@ html, body {
     fill: none;
     stroke: rgba(226, 232, 240, 0.85);
     stroke-width: 0.8;
-    vector-effect: non-scaling-stroke;
     shape-rendering: geometricPrecision;
 }
