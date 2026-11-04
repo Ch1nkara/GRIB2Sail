@@ -7,7 +7,7 @@ use crate::ecmwf;
 use crate::meteofrance;
 use crate::noaa;
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use reqwest::{
     Client, Method, Request, StatusCode,
     header::{HeaderMap, HeaderValue, RANGE},
@@ -136,13 +136,18 @@ pub async fn fetch_url_5_try(
         if resp.status() == StatusCode::TOO_MANY_REQUESTS {
             if attempts < 5 {
                 if !TOO_MANY_REQUESTS_LOGGED.swap(true, Ordering::AcqRel) {
-                    info!("Too Many Requests, sleeping 1 minute...");
+                    info!("Too many requests, sleeping 1 minute...");
                 }
                 sleep(Duration::from_secs(60)).await;
                 TOO_MANY_REQUESTS_LOGGED.store(false, Ordering::Release);
                 continue;
             }
             return Err(GribError::Generic("Too many requests (429)".to_string()));
+        }
+
+        if resp.status() == StatusCode::NOT_FOUND {
+            warn!("Unavailable layer (404): {}", req.url().to_string());
+            return Ok(Vec::new());
         }
 
         match resp.error_for_status() {
