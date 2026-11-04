@@ -7,13 +7,15 @@ use crate::ecmwf;
 use crate::meteofrance;
 use crate::noaa;
 
-use log::debug;
+use log::{debug, info};
 use reqwest::{
-    Client, Method, Request,
+    Client, Method, Request, StatusCode,
     header::{HeaderMap, HeaderValue, RANGE},
 };
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, sync::atomic::{AtomicBool, Ordering}, time::Duration};
 use tokio::{sync::Semaphore, time::sleep};
+
+static TOO_MANY_REQUESTS_LOGGED: AtomicBool = AtomicBool::new(false);
 
 pub async fn download_grib(
     grib: Grib,
@@ -129,29 +131,29 @@ pub async fn fetch_url_5_try(
         attempts += 1;
         if attempts > 1 {
             debug!("Request {:?} failed retrying {}/5", req, attempts);
-            // Backoff before retrying
-            sleep(Duration::from_secs(1)).await;
         }
-        match try_fetch_url(
-            client,
-            req.try_clone().expect("Failed to clone a Request"),
-        )
-        .await
-        {
-            Ok(b) => break b,
-            Err(_) if attempts < 5 => continue,
-            Err(e) => return Err(e),
+        let resp = client.execute(req.try_clone().expect("Failed to clone a Request")).await?;
+        if resp.status() == StatusCode::TOO_MANY_REQUESTS {
+            if attempts < 5 {
+                if !TOO_MANY_REQUESTS_LOGGED.swap(true, Ordering::AcqRel) {
+                    info!("Too Many Requests, sleeping 1 minute...");
+                }
+                sleep(Duration::from_secs(60)).await;
+                TOO_MANY_REQUESTS_LOGGED.store(false, Ordering::Release);
+                continue;
+            }
+            return Err(GribError::Generic("Too many requests (429)".to_string()));
+        }
+
+        match resp.error_for_status() {
+            Ok(resp) => break resp.bytes().await?.to_vec(),
+            Err(e) if attempts < 5 => {
+                sleep(Duration::from_secs(1)).await;
+                debug!("Request {:?} failed retrying {}/5: {}", req, attempts, e);
+                continue;
+            }
+            Err(e) => return Err(e.into()),
         }
     };
     Ok(bytes)
-}
-
-async fn try_fetch_url(
-    client: &Client,
-    req: Request,
-) -> Result<Vec<u8>, GribError> {
-    debug!("Sending request {:?}", req);
-    let resp = client.execute(req).await?;
-    let resp = resp.error_for_status()?;
-    Ok(resp.bytes().await?.to_vec())
 }

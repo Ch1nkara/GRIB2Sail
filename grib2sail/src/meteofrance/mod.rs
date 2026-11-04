@@ -14,7 +14,6 @@ use reqwest::{
     Client, Method,
     header::{AUTHORIZATION, HeaderMap, HeaderValue},
 };
-use tokio::time::{Duration, sleep};
 
 pub async fn download_grib(
     mut grib: Grib,
@@ -113,29 +112,8 @@ pub async fn download_grib(
         .collect();
     run.push('z');
 
-    let mut content = Vec::new();
     options.started(total)?;
-    if total < 100 {
-        content = fetch_data(client, &to_download, options).await?;
-    } else {
-        let mut msg = String::from("The requested grib has ");
-        msg.push_str(&total.to_string());
-        msg.push_str(" layers, but MeteoFrance servers limit requests to 100");
-        msg.push_str(" per minutes. This program will sleep 1 minute every");
-        msg.push_str(" 100 layers until the complete grib file is downloaded.");
-        msg.push_str(" You might want to consider reducing the number of");
-        msg.push_str(" layers by increasing the step or reducing the number");
-        msg.push_str(" of components");
-        warn!("{}", msg);
-        let chunks = to_download.chunks(100).collect::<Vec<_>>();
-        for (i, chunk) in chunks.iter().enumerate() {
-            content.append(&mut fetch_data(client, chunk, options).await?);
-            if i != chunks.len() - 1 {
-                info!("Sleeping 1 minute...");
-                sleep(Duration::from_mins(1)).await;
-            }
-        }
-    }
+    let content = fetch_data(client, &to_download, options).await?;
 
     options.finished_all(total)?;
     Ok((content, run))
