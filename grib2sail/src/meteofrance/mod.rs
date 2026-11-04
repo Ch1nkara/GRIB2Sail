@@ -27,6 +27,7 @@ pub async fn download_grib(
 
     if grib.days > 2 && grib.model.is_arome() {
         warn!("Arome forecast is limited to 2 days max");
+        grib.days = 2;
     } else if grib.days > 4 && grib.model.is_arpege() {
         warn!("Arpege forecast is limited to 4 days max");
         grib.days = 4;
@@ -36,6 +37,7 @@ pub async fn download_grib(
             "Only {} can have a step of 1h, defaulting to 3h",
             Model::Arpege025
         );
+        // Enforced in config.rs
     }
     if grib.step as usize == 1
         && grib.model == Model::Arpege025
@@ -44,6 +46,7 @@ pub async fn download_grib(
         let mut msg = String::from("Only the first 2 days can have a");
         msg.push_str(" step of 1h, the rest will have a 3h step");
         warn!("{}", msg);
+        // Enforced in config.rs
     }
 
     info!("Finding the latest available forecast");
