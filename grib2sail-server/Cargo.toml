@@ -1,0 +1,19 @@
+[package]
+name = "grib2sail-server"
+description = "Minimal REST server for grib2sail"
+version = "0.7.2"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Ch1nkara/GRIB2Sail"
+readme = "../README.md"
+
+[[bin]]
+name = "grib2sail-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8.6"
+clap = { version = "4.5.57", features = ["derive"] }
+grib2sail = { path = "../grib2sail" }
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }

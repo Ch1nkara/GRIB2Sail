@@ -1,5 +1,5 @@
 [workspace]
-members = ["grib2sail", "grib2sail-cli"]
+members = ["grib2sail", "grib2sail-cli", "grib2sail-server"]
 resolver = "3"
 
 [workspace.metadata.release]
@@ -25,4 +25,3 @@ pre-release-hook = [
 [profile.dist]
 inherits = "release"
 lto = "thin"
-
